@@ -45,3 +45,16 @@ def update_student(student_id, name=None, age=None, grade=None):
     # Code to update the student in the database goes here
     pass
 
+def delete_student(student_id):
+    """
+    Deletes a student from the database.
+
+    Args:
+        student_id (int): The unique identifier for the student.
+
+    Returns:
+        bool: True if the student was deleted successfully, False otherwise.
+    """
+    # Code to delete the student from the database goes here
+    pass
+

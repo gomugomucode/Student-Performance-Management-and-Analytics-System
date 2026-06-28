@@ -107,7 +107,25 @@ def update_student(student_id, name=None, gender=None, semester=None, department
         bool: True if the student was updated successfully, False otherwise.
     """
     # Code to update the student in the database goes here
-    pass
+    query = """
+    UPDATE students SET name = COALESCE(?, name), gender = COALESCE(?, gender), semester = COALESCE(?, semester), department = COALESCE(?, department), age = COALESCE(?, age), grade = COALESCE(?, grade) WHERE id = ?;
+    """
+    
+    conn = get_connection()
+    if conn is None:
+        print("Failed to connect to the database.")
+        return False
+
+    try:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (name, gender, semester, department, age, grade, student_id))
+        return True
+    except Exception as e:
+        print(f"Error updating student in database: {e}")
+        return False
+    finally:
+        conn.close()
 
 def delete_student(student_id):
     """
@@ -120,6 +138,20 @@ def delete_student(student_id):
         bool: True if the student was deleted successfully, False otherwise.
     """
     # Code to delete the student from the database goes here
-    pass
+    query = "DELETE FROM students WHERE id = ?;"
 
-
+    conn = get_connection()
+    if conn is None:
+        print("Failed to connect to the database.")
+        return False
+    
+    try:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (student_id,))
+        return True
+    except Exception as e:
+        print(f"Error deleting student from database: {e}")
+        return False
+    finally:
+        conn.close()

@@ -1,15 +1,18 @@
 from database.connection import get_connection
 
 def create_tables():
-    """Create the students and marks tables with foreign key constraints enforced."""
+    """Create the students and marks tables with all required fields."""
     
+    # Combined schema supporting all columns
     students_table = """
     CREATE TABLE IF NOT EXISTS students(
         student_id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         gender TEXT,
         semester INTEGER,
-        department TEXT
+        department TEXT,
+        age INTEGER,
+        grade TEXT
     );
     """
     
@@ -26,16 +29,12 @@ def create_tables():
     conn = get_connection()
     if conn is not None:
         try:
-            # Enforce foreign key constraints in SQLite
             conn.execute("PRAGMA foreign_keys = ON;")
-            
-            # Use a context manager to handle transactions automatically
             with conn:
                 cursor = conn.cursor()
                 cursor.execute(students_table)
                 cursor.execute(marks_table)
-                
-            print("Database tables initialized successfully.")
+            print("Database tables initialized successfully with combined schema.")
         except Exception as e:
             print(f"Error creating tables: {e}")
         finally:

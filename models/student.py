@@ -70,7 +70,7 @@ def get_student(student_id):
         row = cursor.fetchone()
         if row:
             return {
-                "id": row[0],
+                "student_id": row[0],
                 "name": row[1],
                 "gender": row[2],
                 "semester": row[3],
@@ -78,9 +78,7 @@ def get_student(student_id):
                 "age": row[5],
                 "grade": row[6]
             }
-        else:
-            print(f"Student with ID {student_id} not found.")
-            return {}
+        return {}
     except Exception as e:
         print(f"Error retrieving student from database: {e}")
         return {}

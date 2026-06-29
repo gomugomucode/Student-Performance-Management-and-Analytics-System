@@ -4,7 +4,10 @@ from models.marks import get_marks as fetch_marks
 from models.marks import update_marks as update_marks_record
 from models.student import add_student as add_student_record
 from models.student import delete_student as delete_student_record
+from models.student import get_all_students as fetch_all_students
 from models.student import get_student as fetch_student
+from models.student import search_students as search_students_records
+from models.student import student_id_exists
 from models.student import update_student as update_student_record
 from services.analytics import calculate_class_average, calculate_student_average, student_exists
 from services.export import export_marks_to_csv, export_students_to_csv
@@ -24,20 +27,26 @@ def student_menu() -> None:
     while True:
         print("\nStudent Management")
         print("1. Add student")
-        print("2. View student")
-        print("3. Update student")
-        print("4. Delete student")
-        print("5. Back")
+        print("2. View all students")
+        print("3. Search student")
+        print("4. View student")
+        print("5. Update student")
+        print("6. Delete student")
+        print("7. Back")
 
-        choice = read_choice("Enter your choice: ", 1, 5)
+        choice = read_choice("Enter your choice: ", 1, 7)
 
         if choice == 1:
             create_student()
         elif choice == 2:
-            view_student()
+            view_all_students()
         elif choice == 3:
-            update_student()
+            search_student()
         elif choice == 4:
+            view_student()
+        elif choice == 5:
+            update_student()
+        elif choice == 6:
             remove_student()
         else:
             break
@@ -106,6 +115,12 @@ def export_menu() -> None:
 def create_student() -> None:
     print("\nAdd Student")
     student_id = read_positive_int("Student ID: ")
+
+    if student_id_exists(student_id):
+        print(f"Student ID {student_id} is already taken. Use a different ID.")
+        wait_for_enter()
+        return
+
     name = read_non_empty_text("Name: ")
     gender = read_optional_text("Gender [optional]: ")
     semester = read_positive_int("Semester [optional]: ", allow_empty=True)
@@ -142,6 +157,33 @@ def view_student() -> None:
         return
 
     print_student_summary(student)
+    wait_for_enter()
+
+
+def view_all_students() -> None:
+    print("\nAll Students")
+    students = fetch_all_students()
+
+    if not students:
+        print("No students are registered yet.")
+        wait_for_enter()
+        return
+
+    print_students_table(students)
+    wait_for_enter()
+
+
+def search_student() -> None:
+    print("\nSearch Student")
+    query = read_non_empty_text("Enter student ID or name fragment: ")
+    results = search_students_records(query)
+
+    if not results:
+        print("No students matched your search. Try a different ID or name.")
+        wait_for_enter()
+        return
+
+    print_students_table(results)
     wait_for_enter()
 
 
@@ -316,3 +358,34 @@ def print_student_summary(student: dict) -> None:
     print(f"  Department: {student.get('department', 'N/A')}")
     print(f"  Age: {student.get('age', 'N/A')}")
     print(f"  Grade: {student.get('grade', 'N/A')}")
+
+
+def print_students_table(students: list[dict]) -> None:
+    """Print a formatted table for a list of student records."""
+    headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
+    rows = [
+        [
+            str(student.get("student_id", "")),
+            student.get("name", ""),
+            student.get("gender", ""),
+            str(student.get("semester", "")) if student.get("semester") is not None else "",
+            student.get("department", ""),
+            str(student.get("age", "")) if student.get("age") is not None else "",
+            student.get("grade", ""),
+        ]
+        for student in students
+    ]
+
+    column_widths = [max(len(str(value)) for value in column) for column in zip(headers, *rows)]
+    separator = "+" + "+".join("-" * (width + 2) for width in column_widths) + "+"
+
+    print(separator)
+    header_row = "|" + "|".join(f" {headers[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
+    print(header_row)
+    print(separator)
+
+    for row in rows:
+        row_text = "|" + "|".join(f" {row[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
+        print(row_text)
+
+    print(separator)

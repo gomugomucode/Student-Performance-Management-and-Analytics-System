@@ -1,9 +1,12 @@
 from database.schema import create_tables
+from cli.menu import run_cli
 
-def main():
+
+def main() -> None:
     print("Initializing Student Performance Management System...")
-    # Setup database tables on startup
     create_tables()
+    run_cli()
+
 
 if __name__ == "__main__":
     main()

@@ -55,9 +55,8 @@ def get_student(student_id):
     Returns:
         dict: A dictionary containing the student's information, or an empty dictionary if the student is not found.
     """
-    # Code to retrieve the student from the database goes here
     query = """
-    SELECT id, name,gender ,semester, department, age, grade FROM students WHERE id = ?;
+    SELECT student_id, name, gender, semester, department, age, grade FROM students WHERE student_id = ?;
     """
     
     conn = get_connection()
@@ -108,7 +107,7 @@ def update_student(student_id, name=None, gender=None, semester=None, department
     """
     # Code to update the student in the database goes here
     query = """
-    UPDATE students SET name = COALESCE(?, name), gender = COALESCE(?, gender), semester = COALESCE(?, semester), department = COALESCE(?, department), age = COALESCE(?, age), grade = COALESCE(?, grade) WHERE id = ?;
+    UPDATE students SET name = COALESCE(?, name), gender = COALESCE(?, gender), semester = COALESCE(?, semester), department = COALESCE(?, department), age = COALESCE(?, age), grade = COALESCE(?, grade) WHERE student_id = ?;
     """
     
     conn = get_connection()
@@ -138,7 +137,7 @@ def delete_student(student_id):
         bool: True if the student was deleted successfully, False otherwise.
     """
     # Code to delete the student from the database goes here
-    query = "DELETE FROM students WHERE id = ?;"
+    query = "DELETE FROM students WHERE student_id = ?;"
 
     conn = get_connection()
     if conn is None:

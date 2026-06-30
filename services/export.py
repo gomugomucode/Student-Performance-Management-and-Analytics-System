@@ -1,9 +1,14 @@
 import pandas as pd
 from pathlib import Path
 from database.connection import get_connection
-from services.analytics import complete_class_report, individual_student_report, subject_wise_report
+from services.analytics import (
+    complete_class_report,
+    detailed_student_report,
+    individual_student_report,
+    subject_wise_report,
+)
 
-EXPORT_DIR = Path("reports")
+EXPORT_DIR = Path("Reports")
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -58,3 +63,10 @@ def export_subject_report_to_csv() -> str:
     if df.empty:
         raise ValueError("No subject report available.")
     return _write_dataframe_csv("subject_report.csv", df)
+
+
+def export_analytics_report_to_csv() -> str:
+    df = detailed_student_report()
+    if df.empty:
+        raise ValueError("No analytics report available.")
+    return _write_dataframe_csv("analytics_report.csv", df)

@@ -123,6 +123,19 @@ def student_exists(student_id: int) -> bool:
     return bool(get_student(student_id))
 
 
+def calculate_student_average(student_id: int) -> Optional[float]:
+    """Return the average marks for a single student."""
+    report = individual_student_report(student_id)
+    if report.empty:
+        return None
+    return float(report["average_marks"].iloc[0])
+
+
+def calculate_class_average() -> Optional[float]:
+    """Return the average marks for the whole class."""
+    return class_average()
+
+
 def student_total_marks_report() -> pd.DataFrame:
     """Return total marks per student.
 

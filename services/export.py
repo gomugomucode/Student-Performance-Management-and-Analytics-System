@@ -7,14 +7,19 @@ from services.analytics import (
     individual_student_report,
     subject_wise_report,
 )
+from services.validation import ExportError
 
-EXPORT_DIR = Path("Reports")
+BASE_DIR = Path(__file__).resolve().parent.parent
+EXPORT_DIR = BASE_DIR / "Reports"
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _write_dataframe_csv(filename: str, df: pd.DataFrame) -> str:
     output_path = EXPORT_DIR / filename
-    df.to_csv(output_path, index=False, encoding="utf-8")
+    try:
+        df.to_csv(output_path, index=False, encoding="utf-8")
+    except Exception as error:
+        raise ExportError(f"Failed to write export file {output_path}: {error}") from error
     return str(output_path.resolve())
 
 
@@ -47,26 +52,26 @@ def export_marks_to_csv() -> str:
 def export_individual_student_report_to_csv(student_id: int) -> str:
     df = individual_student_report(student_id)
     if df.empty:
-        raise ValueError(f"No report available for student ID {student_id}.")
+        raise ExportError(f"No report available for student ID {student_id}.")
     return _write_dataframe_csv(f"student_{student_id}_report.csv", df)
 
 
 def export_complete_class_report_to_csv() -> str:
     df = complete_class_report()
     if df.empty:
-        raise ValueError("No class report available.")
+        raise ExportError("No class report available.")
     return _write_dataframe_csv("class_report.csv", df)
 
 
 def export_subject_report_to_csv() -> str:
     df = subject_wise_report()
     if df.empty:
-        raise ValueError("No subject report available.")
+        raise ExportError("No subject report available.")
     return _write_dataframe_csv("subject_report.csv", df)
 
 
 def export_analytics_report_to_csv() -> str:
     df = detailed_student_report()
     if df.empty:
-        raise ValueError("No analytics report available.")
+        raise ExportError("No analytics report available.")
     return _write_dataframe_csv("analytics_report.csv", df)

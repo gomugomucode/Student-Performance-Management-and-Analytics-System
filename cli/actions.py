@@ -9,8 +9,15 @@ from models.student import get_student as fetch_student
 from models.student import search_students as search_students_records
 from models.student import student_id_exists
 from models.student import update_student as update_student_record
-from services.analytics import calculate_class_average, calculate_student_average, student_exists
+from services.analytics import class_average as calculate_class_average, calculate_student_average, student_exists
 from services.export import export_marks_to_csv, export_students_to_csv
+from services.validation import (
+    DatabaseConnectionError,
+    DuplicateIDError,
+    ExportError,
+    MissingRecordError,
+    ValidationError,
+)
 from cli.utils import (
     confirm_action,
     read_choice,
@@ -128,20 +135,21 @@ def create_student() -> None:
     age = read_positive_int("Age [optional]: ", allow_empty=True)
     grade = read_optional_text("Grade [optional]: ")
 
-    success = add_student_record(
-        student_id,
-        name,
-        age=age,
-        grade=grade,
-        gender=gender,
-        semester=semester,
-        department=department,
-    )
-
-    if success:
-        print("Student added successfully.")
-    else:
-        print("Failed to add the student. Please verify the details and try again.")
+    try:
+        success = add_student_record(
+            student_id,
+            name,
+            age=age,
+            grade=grade,
+            gender=gender,
+            semester=semester,
+            department=department,
+        )
+        print("Student added successfully." if success else "Failed to add the student.")
+    except (ValidationError, DuplicateIDError, DatabaseConnectionError) as error:
+        print(f"Unable to add student: {error}")
+    except Exception as error:
+        print(f"Unexpected error while adding student: {error}")
 
     wait_for_enter()
 
@@ -212,18 +220,21 @@ def update_student() -> None:
         wait_for_enter()
         return
 
-    updated = update_student_record(
-        student_id,
-        name=name,
-        gender=gender,
-        semester=semester,
-        department=department,
-        age=age,
-        grade=grade,
-    )
-
-    message = "Student updated successfully." if updated else "Student update failed."
-    print(message)
+    try:
+        updated = update_student_record(
+            student_id,
+            name=name,
+            gender=gender,
+            semester=semester,
+            department=department,
+            age=age,
+            grade=grade,
+        )
+        print("Student updated successfully." if updated else "Student update failed.")
+    except (ValidationError, MissingRecordError, DatabaseConnectionError) as error:
+        print(f"Unable to update student: {error}")
+    except Exception as error:
+        print(f"Unexpected error while updating student: {error}")
     wait_for_enter()
 
 
@@ -243,8 +254,13 @@ def remove_student() -> None:
         wait_for_enter()
         return
 
-    deleted = delete_student_record(student_id)
-    print("Student deleted successfully." if deleted else "Student deletion failed.")
+    try:
+        deleted = delete_student_record(student_id)
+        print("Student deleted successfully." if deleted else "Student deletion failed.")
+    except (MissingRecordError, DatabaseConnectionError) as error:
+        print(f"Unable to delete student: {error}")
+    except Exception as error:
+        print(f"Unexpected error while deleting student: {error}")
     wait_for_enter()
 
 
@@ -254,8 +270,13 @@ def create_marks() -> None:
     subject = read_non_empty_text("Subject: ")
     marks = read_int_range("Marks (0-100): ", 0, 100)
 
-    success = add_marks_record(student_id, subject, marks)
-    print("Marks added successfully." if success else "Failed to add marks. Please verify the student ID and try again.")
+    try:
+        success = add_marks_record(student_id, subject, marks)
+        print("Marks added successfully." if success else "Failed to add marks.")
+    except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
+        print(f"Unable to add marks: {error}")
+    except Exception as error:
+        print(f"Unexpected error while adding marks: {error}")
     wait_for_enter()
 
 
@@ -289,8 +310,13 @@ def update_marks() -> None:
         wait_for_enter()
         return
 
-    success = update_marks_record(mark_id, subject=subject, marks=marks)
-    print("Marks updated successfully." if success else "Marks update failed.")
+    try:
+        success = update_marks_record(mark_id, subject=subject, marks=marks)
+        print("Marks updated successfully." if success else "Marks update failed.")
+    except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
+        print(f"Unable to update marks: {error}")
+    except Exception as error:
+        print(f"Unexpected error while updating marks: {error}")
     wait_for_enter()
 
 
@@ -303,8 +329,13 @@ def remove_marks() -> None:
         wait_for_enter()
         return
 
-    deleted = delete_marks_record(mark_id)
-    print("Marks deleted successfully." if deleted else "Marks deletion failed.")
+    try:
+        deleted = delete_marks_record(mark_id)
+        print("Marks deleted successfully." if deleted else "Marks deletion failed.")
+    except (MissingRecordError, DatabaseConnectionError) as error:
+        print(f"Unable to delete marks: {error}")
+    except Exception as error:
+        print(f"Unexpected error while deleting marks: {error}")
     wait_for_enter()
 
 
@@ -339,15 +370,25 @@ def class_average() -> None:
 
 def export_students() -> None:
     print("\nExport Students")
-    path = export_students_to_csv()
-    print(f"Student export completed: {path}")
+    try:
+        path = export_students_to_csv()
+        print(f"Student export completed: {path}")
+    except ExportError as error:
+        print(f"Export failed: {error}")
+    except Exception as error:
+        print(f"Unexpected export error: {error}")
     wait_for_enter()
 
 
 def export_marks() -> None:
     print("\nExport Marks")
-    path = export_marks_to_csv()
-    print(f"Marks export completed: {path}")
+    try:
+        path = export_marks_to_csv()
+        print(f"Marks export completed: {path}")
+    except ExportError as error:
+        print(f"Export failed: {error}")
+    except Exception as error:
+        print(f"Unexpected export error: {error}")
     wait_for_enter()
 
 

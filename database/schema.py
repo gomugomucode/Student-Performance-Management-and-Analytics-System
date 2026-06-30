@@ -1,9 +1,8 @@
 from database.connection import get_connection
 
 def create_tables():
-    """Create the students and marks tables with all required fields."""
-    
-    # Combined schema supporting all columns
+    """Create the students and marks tables with required constraints."""
+
     students_table = """
     CREATE TABLE IF NOT EXISTS students(
         student_id INTEGER PRIMARY KEY,
@@ -15,17 +14,18 @@ def create_tables():
         grade TEXT
     );
     """
-    
+
     marks_table = """
     CREATE TABLE IF NOT EXISTS marks(
         mark_id INTEGER PRIMARY KEY,
-        student_id INTEGER,
-        subject TEXT,
-        marks INTEGER,
-        FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE
+        student_id INTEGER NOT NULL,
+        subject TEXT NOT NULL,
+        marks INTEGER NOT NULL CHECK(marks BETWEEN 0 AND 100),
+        FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+        UNIQUE(student_id, subject)
     );
     """
-    
+
     conn = get_connection()
     if conn is not None:
         try:

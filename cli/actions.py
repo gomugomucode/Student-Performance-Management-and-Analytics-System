@@ -262,17 +262,19 @@ def create_marks() -> None:
 def view_marks() -> None:
     print("\nView Marks")
     student_id = read_positive_int("Student ID: ")
-    marks = fetch_marks(student_id)
 
+    if not student_id_exists(student_id):
+        print(f"Student with ID {student_id} does not exist.")
+        wait_for_enter()
+        return
+
+    marks = fetch_marks(student_id)
     if not marks:
         print(f"No marks found for student ID {student_id}.")
         wait_for_enter()
         return
 
-    print(f"Marks for student {student_id}:")
-    for mark in marks:
-        print(f"  - {mark['subject']}: {mark['marks']}")
-
+    print_marks_table(marks)
     wait_for_enter()
 
 
@@ -374,6 +376,33 @@ def print_students_table(students: list[dict]) -> None:
             student.get("grade", ""),
         ]
         for student in students
+    ]
+
+    column_widths = [max(len(str(value)) for value in column) for column in zip(headers, *rows)]
+    separator = "+" + "+".join("-" * (width + 2) for width in column_widths) + "+"
+
+    print(separator)
+    header_row = "|" + "|".join(f" {headers[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
+    print(header_row)
+    print(separator)
+
+    for row in rows:
+        row_text = "|" + "|".join(f" {row[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
+        print(row_text)
+
+    print(separator)
+
+
+def print_marks_table(marks: list[dict]) -> None:
+    """Print a formatted table for a list of marks records."""
+    headers = ["Record ID", "Subject", "Marks"]
+    rows = [
+        [
+            str(mark.get("mark_id", "")),
+            mark.get("subject", ""),
+            str(mark.get("marks", "")),
+        ]
+        for mark in marks
     ]
 
     column_widths = [max(len(str(value)) for value in column) for column in zip(headers, *rows)]

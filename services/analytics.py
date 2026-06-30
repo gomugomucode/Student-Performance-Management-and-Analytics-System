@@ -36,14 +36,10 @@ def _load_marks_dataframe() -> pd.DataFrame:
         df = pd.read_sql_query(query, conn)
         if df.empty:
             return df
-    
-    # errors="coerce" forces invalid data (e.g., text or missing values) into NaN.
-    # fillna(0) replaces those NaN values with 0..astype(int) ensures all column data becomes integers.
 
         df["marks"] = pd.to_numeric(df["marks"], errors="coerce").fillna(0).astype(int)
         return df
-    except Exception as e:
-        print(f"Error loading marks dataframe: {e}")
+    except Exception:
         return pd.DataFrame()
     finally:
         conn.close()
@@ -131,11 +127,6 @@ def calculate_student_average(student_id: int) -> Optional[float]:
     return float(report["average_marks"].iloc[0])
 
 
-def calculate_class_average() -> Optional[float]:
-    """Return the average marks for the whole class."""
-    return class_average()
-
-
 def student_total_marks_report() -> pd.DataFrame:
     """Return total marks per student.
 
@@ -178,7 +169,7 @@ def student_pass_fail_report() -> pd.DataFrame:
     return report[["student_id", "student_name", "pass_fail"]] if not report.empty else report
 
 
-def class_average() -> Optional[float]:
+def calculate_class_average() -> Optional[float]:
     """Calculate the class average across all marks.
 
     Class average is the mean of all the marks entered in the class.

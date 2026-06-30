@@ -1,9 +1,7 @@
 from pathlib import Path
 import sqlite3
 from sqlite3 import Error
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_FILE = BASE_DIR / "database.db"
+from config import DB_FILE
 
 
 def get_connection():
@@ -13,7 +11,9 @@ def get_connection():
     regardless of the current working directory.
     """
     try:
-        return sqlite3.connect(DB_FILE)
-    except Error as e:
-        print(f"Database connection error: {e}")
+        connection = sqlite3.connect(DB_FILE)
+        connection.execute("PRAGMA foreign_keys = ON;")
+        return connection
+    except Error as error:
+        print(f"Database connection error: {error}")
         return None

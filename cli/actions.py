@@ -207,7 +207,20 @@ def view_all_students() -> None:
         return
 
     print_success(f"Found {len(students)} student(s).")
-    print_students_table(students)
+    headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
+    rows = [
+        [
+            str(student.get("student_id", "")),
+            student.get("name", ""),
+            student.get("gender", ""),
+            str(student.get("semester", "")) if student.get("semester") is not None else "",
+            student.get("department", ""),
+            str(student.get("age", "")) if student.get("age") is not None else "",
+            student.get("grade", ""),
+        ]
+        for student in students
+    ]
+    print_table(headers, rows)
     wait_for_enter()
 
 
@@ -222,7 +235,20 @@ def search_student() -> None:
         return
 
     print_success(f"Found {len(results)} matching student(s).")
-    print_students_table(results)
+    headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
+    rows = [
+        [
+            str(student.get("student_id", "")),
+            student.get("name", ""),
+            student.get("gender", ""),
+            str(student.get("semester", "")) if student.get("semester") is not None else "",
+            student.get("department", ""),
+            str(student.get("age", "")) if student.get("age") is not None else "",
+            student.get("grade", ""),
+        ]
+        for student in results
+    ]
+    print_table(headers, rows)
     wait_for_enter()
 
 
@@ -336,7 +362,16 @@ def view_marks() -> None:
         return
 
     print_success(f"Found {len(marks)} record(s) for student {student_id}.")
-    print_marks_table(marks)
+    headers = ["Record ID", "Subject", "Marks"]
+    rows = [
+        [
+            str(mark.get("mark_id", "")),
+            mark.get("subject", ""),
+            str(mark.get("marks", "")),
+        ]
+        for mark in marks
+    ]
+    print_table(headers, rows)
     wait_for_enter()
 
 
@@ -450,59 +485,3 @@ def print_student_summary(student: dict) -> None:
     print(f"  Grade: {student.get('grade', 'N/A')}")
 
 
-def print_students_table(students: list[dict]) -> None:
-    """Print a formatted table for a list of student records."""
-    headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
-    rows = [
-        [
-            str(student.get("student_id", "")),
-            student.get("name", ""),
-            student.get("gender", ""),
-            str(student.get("semester", "")) if student.get("semester") is not None else "",
-            student.get("department", ""),
-            str(student.get("age", "")) if student.get("age") is not None else "",
-            student.get("grade", ""),
-        ]
-        for student in students
-    ]
-
-    column_widths = [max(len(str(value)) for value in column) for column in zip(headers, *rows)]
-    separator = "+" + "+".join("-" * (width + 2) for width in column_widths) + "+"
-
-    print(separator)
-    header_row = "|" + "|".join(f" {headers[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
-    print(header_row)
-    print(separator)
-
-    for row in rows:
-        row_text = "|" + "|".join(f" {row[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
-        print(row_text)
-
-    print(separator)
-
-
-def print_marks_table(marks: list[dict]) -> None:
-    """Print a formatted table for a list of marks records."""
-    headers = ["Record ID", "Subject", "Marks"]
-    rows = [
-        [
-            str(mark.get("mark_id", "")),
-            mark.get("subject", ""),
-            str(mark.get("marks", "")),
-        ]
-        for mark in marks
-    ]
-
-    column_widths = [max(len(str(value)) for value in column) for column in zip(headers, *rows)]
-    separator = "+" + "+".join("-" * (width + 2) for width in column_widths) + "+"
-
-    print(separator)
-    header_row = "|" + "|".join(f" {headers[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
-    print(header_row)
-    print(separator)
-
-    for row in rows:
-        row_text = "|" + "|".join(f" {row[index].ljust(width)} " for index, width in enumerate(column_widths)) + "|"
-        print(row_text)
-
-    print(separator)

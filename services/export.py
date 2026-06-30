@@ -1,5 +1,4 @@
 import pandas as pd
-from pathlib import Path
 from database.connection import get_connection
 from services.analytics import (
     complete_class_report,
@@ -8,9 +7,9 @@ from services.analytics import (
     subject_wise_report,
 )
 from services.validation import ExportError
+import config
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-EXPORT_DIR = BASE_DIR / "Reports"
+EXPORT_DIR = config.REPORTS_DIR
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -27,7 +26,7 @@ def export_students_to_csv() -> str:
     query = "SELECT student_id, name, gender, semester, department, age, grade FROM students ORDER BY student_id;"
     conn = get_connection()
     if conn is None:
-        raise RuntimeError("Unable to connect to the database.")
+        raise ExportError("Unable to connect to the database for export.")
 
     try:
         df = pd.read_sql_query(query, conn)
@@ -40,7 +39,7 @@ def export_marks_to_csv() -> str:
     query = "SELECT mark_id, student_id, subject, marks FROM marks ORDER BY student_id, mark_id;"
     conn = get_connection()
     if conn is None:
-        raise RuntimeError("Unable to connect to the database.")
+        raise ExportError("Unable to connect to the database for export.")
 
     try:
         df = pd.read_sql_query(query, conn)

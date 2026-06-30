@@ -36,7 +36,6 @@ A terminal-based Python application for managing student records, entering marks
 │   ├── marks.py
 │   └── student.py
 ├── reports
-│   └── report.csv
 ├── services
 │   ├── analytics.py
 │   ├── export.py
@@ -46,7 +45,7 @@ A terminal-based Python application for managing student records, entering marks
 │   └── test_student.py
 ├── main.py
 ├── README.md
-└── requirement.txt
+└── requirements.txt
 ```
 
 ## Installation
@@ -63,7 +62,13 @@ python -m venv .venv
 4. Install dependencies:
 
 ```powershell
-pip install -r requirement.txt
+pip install -r requirements.txt
+```
+
+5. Run unit tests (optional):
+
+```powershell
+python -m unittest discover tests
 ```
 
 ## Database Schema

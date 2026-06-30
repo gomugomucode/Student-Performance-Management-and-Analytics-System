@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from database.connection import get_connection
 from models.student import get_student
+from typing import Optional
 
 GRADE_BOUNDARIES = {
     "A": 90,
@@ -89,6 +90,32 @@ def _calculate_student_report() -> pd.DataFrame:
     grouped["average_marks"] = grouped["average_marks"].round(2)
     grouped["percentage"] = grouped["percentage"].round(2)
     return grouped.drop(columns=["min_marks"])
+
+
+def individual_student_report(student_id: int) -> pd.DataFrame:
+    """Return a single student's analytic summary."""
+    report = _calculate_student_report()
+    if report.empty:
+        return report
+    return report[report["student_id"] == student_id].reset_index(drop=True)
+
+
+def complete_class_report() -> pd.DataFrame:
+    """Return the class report for every student."""
+    report = _calculate_student_report()
+    return report.sort_values(by=["total_marks", "percentage"], ascending=[False, False]).reset_index(drop=True)
+
+
+def subject_wise_report() -> pd.DataFrame:
+    """Return a subject-wise summary of average and highest marks."""
+    df = _load_marks_dataframe()
+    if df.empty:
+        return df
+
+    subject_avg = df.groupby("subject")["marks"].mean().round(2).reset_index().rename(columns={"marks": "average_marks"})
+    idx = df.groupby("subject")["marks"].idxmax()
+    highest = df.loc[idx, ["subject", "student_id", "student_name", "marks"]].rename(columns={"marks": "highest_mark"}).reset_index(drop=True)
+    return pd.merge(subject_avg, highest, on="subject")
 
 
 def student_exists(student_id: int) -> bool:

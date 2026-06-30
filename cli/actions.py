@@ -20,6 +20,12 @@ from services.validation import (
 )
 from cli.utils import (
     confirm_action,
+    print_banner,
+    print_error,
+    print_info,
+    print_menu,
+    print_success,
+    print_table,
     read_choice,
     read_int_range,
     read_non_empty_text,
@@ -32,16 +38,21 @@ from cli.utils import (
 def student_menu() -> None:
     """Render and manage the student submenu."""
     while True:
-        print("\nStudent Management")
-        print("1. Add student")
-        print("2. View all students")
-        print("3. Search student")
-        print("4. View student")
-        print("5. Update student")
-        print("6. Delete student")
-        print("7. Back")
+        print_banner("Student Management")
+        print_menu(
+            "Options",
+            [
+                "1. Add student",
+                "2. View all students",
+                "3. Search student",
+                "4. View student",
+                "5. Update student",
+                "6. Delete student",
+                "7. Back",
+            ],
+        )
 
-        choice = read_choice("Enter your choice: ", 1, 7)
+        choice = read_choice("Select an option: ", 1, 7)
 
         if choice == 1:
             create_student()
@@ -62,14 +73,19 @@ def student_menu() -> None:
 def marks_menu() -> None:
     """Render and manage the marks submenu."""
     while True:
-        print("\nMarks Management")
-        print("1. Add marks")
-        print("2. View marks")
-        print("3. Update marks")
-        print("4. Delete marks")
-        print("5. Back")
+        print_banner("Marks Management")
+        print_menu(
+            "Options",
+            [
+                "1. Add marks",
+                "2. View marks",
+                "3. Update marks",
+                "4. Delete marks",
+                "5. Back",
+            ],
+        )
 
-        choice = read_choice("Enter your choice: ", 1, 5)
+        choice = read_choice("Select an option: ", 1, 5)
 
         if choice == 1:
             create_marks()
@@ -86,12 +102,17 @@ def marks_menu() -> None:
 def analytics_menu() -> None:
     """Render and manage the analytics submenu."""
     while True:
-        print("\nAnalytics")
-        print("1. Student average")
-        print("2. Class average")
-        print("3. Back")
+        print_banner("Analytics")
+        print_menu(
+            "Options",
+            [
+                "1. Student average",
+                "2. Class average",
+                "3. Back",
+            ],
+        )
 
-        choice = read_choice("Enter your choice: ", 1, 3)
+        choice = read_choice("Select an option: ", 1, 3)
 
         if choice == 1:
             student_average()
@@ -104,12 +125,17 @@ def analytics_menu() -> None:
 def export_menu() -> None:
     """Render and manage the export submenu."""
     while True:
-        print("\nExport")
-        print("1. Export students to CSV")
-        print("2. Export marks to CSV")
-        print("3. Back")
+        print_banner("Export")
+        print_menu(
+            "Options",
+            [
+                "1. Export students to CSV",
+                "2. Export marks to CSV",
+                "3. Back",
+            ],
+        )
 
-        choice = read_choice("Enter your choice: ", 1, 3)
+        choice = read_choice("Select an option: ", 1, 3)
 
         if choice == 1:
             export_students()
@@ -120,11 +146,11 @@ def export_menu() -> None:
 
 
 def create_student() -> None:
-    print("\nAdd Student")
+    print_banner("Add Student")
     student_id = read_positive_int("Student ID: ")
 
     if student_id_exists(student_id):
-        print(f"Student ID {student_id} is already taken. Use a different ID.")
+        print_error(f"Student ID {student_id} is already taken. Use a different ID.")
         wait_for_enter()
         return
 
@@ -145,22 +171,25 @@ def create_student() -> None:
             semester=semester,
             department=department,
         )
-        print("Student added successfully." if success else "Failed to add the student.")
+        if success:
+            print_success("Student added successfully.")
+        else:
+            print_error("Failed to add the student.")
     except (ValidationError, DuplicateIDError, DatabaseConnectionError) as error:
-        print(f"Unable to add student: {error}")
+        print_error(f"Unable to add student: {error}")
     except Exception as error:
-        print(f"Unexpected error while adding student: {error}")
+        print_error(f"Unexpected error while adding student: {error}")
 
     wait_for_enter()
 
 
 def view_student() -> None:
-    print("\nView Student")
+    print_banner("View Student")
     student_id = read_positive_int("Student ID: ")
     student = fetch_student(student_id)
 
     if not student:
-        print(f"Student with ID {student_id} was not found.")
+        print_error(f"Student with ID {student_id} was not found.")
         wait_for_enter()
         return
 
@@ -169,44 +198,46 @@ def view_student() -> None:
 
 
 def view_all_students() -> None:
-    print("\nAll Students")
+    print_banner("All Students")
     students = fetch_all_students()
 
     if not students:
-        print("No students are registered yet.")
+        print_info("No students are registered yet.")
         wait_for_enter()
         return
 
+    print_success(f"Found {len(students)} student(s).")
     print_students_table(students)
     wait_for_enter()
 
 
 def search_student() -> None:
-    print("\nSearch Student")
+    print_banner("Search Student")
     query = read_non_empty_text("Enter student ID or name fragment: ")
     results = search_students_records(query)
 
     if not results:
-        print("No students matched your search. Try a different ID or name.")
+        print_error("No students matched your search. Try a different ID or name.")
         wait_for_enter()
         return
 
+    print_success(f"Found {len(results)} matching student(s).")
     print_students_table(results)
     wait_for_enter()
 
 
 def update_student() -> None:
-    print("\nUpdate Student")
+    print_banner("Update Student")
     student_id = read_positive_int("Student ID: ")
     student = fetch_student(student_id)
 
     if not student:
-        print(f"Student with ID {student_id} was not found.")
+        print_error(f"Student with ID {student_id} was not found.")
         wait_for_enter()
         return
 
     print_student_summary(student)
-    print("Enter new values, or leave blank to keep the current value.")
+    print_info("Enter new values, or leave blank to keep the current value.")
 
     name = read_optional_text("Name [optional]: ")
     gender = read_optional_text("Gender [optional]: ")
@@ -216,7 +247,7 @@ def update_student() -> None:
     grade = read_optional_text("Grade [optional]: ")
 
     if name is None and gender is None and semester is None and department is None and age is None and grade is None:
-        print("No changes were provided. Student update canceled.")
+        print_info("No changes were provided. Student update canceled.")
         wait_for_enter()
         return
 
@@ -230,165 +261,181 @@ def update_student() -> None:
             age=age,
             grade=grade,
         )
-        print("Student updated successfully." if updated else "Student update failed.")
+        if updated:
+            print_success("Student updated successfully.")
+        else:
+            print_error("Student update failed.")
     except (ValidationError, MissingRecordError, DatabaseConnectionError) as error:
-        print(f"Unable to update student: {error}")
+        print_error(f"Unable to update student: {error}")
     except Exception as error:
-        print(f"Unexpected error while updating student: {error}")
+        print_error(f"Unexpected error while updating student: {error}")
     wait_for_enter()
 
 
 def remove_student() -> None:
-    print("\nDelete Student")
+    print_banner("Delete Student")
     student_id = read_positive_int("Student ID: ")
     student = fetch_student(student_id)
 
     if not student:
-        print(f"Student with ID {student_id} was not found.")
+        print_error(f"Student with ID {student_id} was not found.")
         wait_for_enter()
         return
 
     print_student_summary(student)
     if not confirm_action("Are you sure you want to delete this student? (Y/N): "):
-        print("Delete operation canceled.")
+        print_info("Delete operation canceled.")
         wait_for_enter()
         return
 
     try:
         deleted = delete_student_record(student_id)
-        print("Student deleted successfully." if deleted else "Student deletion failed.")
+        if deleted:
+            print_success("Student deleted successfully.")
+        else:
+            print_error("Student deletion failed.")
     except (MissingRecordError, DatabaseConnectionError) as error:
-        print(f"Unable to delete student: {error}")
+        print_error(f"Unable to delete student: {error}")
     except Exception as error:
-        print(f"Unexpected error while deleting student: {error}")
+        print_error(f"Unexpected error while deleting student: {error}")
     wait_for_enter()
 
 
 def create_marks() -> None:
-    print("\nAdd Marks")
+    print_banner("Add Marks")
     student_id = read_positive_int("Student ID: ")
     subject = read_non_empty_text("Subject: ")
     marks = read_int_range("Marks (0-100): ", 0, 100)
 
     try:
         success = add_marks_record(student_id, subject, marks)
-        print("Marks added successfully." if success else "Failed to add marks.")
+        if success:
+            print_success("Marks added successfully.")
+        else:
+            print_error("Failed to add marks.")
     except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
-        print(f"Unable to add marks: {error}")
+        print_error(f"Unable to add marks: {error}")
     except Exception as error:
-        print(f"Unexpected error while adding marks: {error}")
+        print_error(f"Unexpected error while adding marks: {error}")
     wait_for_enter()
 
 
 def view_marks() -> None:
-    print("\nView Marks")
+    print_banner("View Marks")
     student_id = read_positive_int("Student ID: ")
 
     if not student_id_exists(student_id):
-        print(f"Student with ID {student_id} does not exist.")
+        print_error(f"Student with ID {student_id} does not exist.")
         wait_for_enter()
         return
 
     marks = fetch_marks(student_id)
     if not marks:
-        print(f"No marks found for student ID {student_id}.")
+        print_info(f"No marks found for student ID {student_id}.")
         wait_for_enter()
         return
 
+    print_success(f"Found {len(marks)} record(s) for student {student_id}.")
     print_marks_table(marks)
     wait_for_enter()
 
 
 def update_marks() -> None:
-    print("\nUpdate Marks")
+    print_banner("Update Marks")
     mark_id = read_positive_int("Marks record ID: ")
     subject = read_optional_text("Subject [optional]: ")
     marks = read_int_range("Marks (0-100) [optional]: ", 0, 100, allow_empty=True)
 
     if subject is None and marks is None:
-        print("No updates provided. Marks update canceled.")
+        print_info("No updates provided. Marks update canceled.")
         wait_for_enter()
         return
 
     try:
         success = update_marks_record(mark_id, subject=subject, marks=marks)
-        print("Marks updated successfully." if success else "Marks update failed.")
+        if success:
+            print_success("Marks updated successfully.")
+        else:
+            print_error("Marks update failed.")
     except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
-        print(f"Unable to update marks: {error}")
+        print_error(f"Unable to update marks: {error}")
     except Exception as error:
-        print(f"Unexpected error while updating marks: {error}")
+        print_error(f"Unexpected error while updating marks: {error}")
     wait_for_enter()
 
 
 def remove_marks() -> None:
-    print("\nDelete Marks")
+    print_banner("Delete Marks")
     mark_id = read_positive_int("Marks record ID: ")
 
     if not confirm_action("Are you sure you want to delete this marks record? (Y/N): "):
-        print("Delete operation canceled.")
+        print_info("Delete operation canceled.")
         wait_for_enter()
         return
 
     try:
         deleted = delete_marks_record(mark_id)
-        print("Marks deleted successfully." if deleted else "Marks deletion failed.")
+        if deleted:
+            print_success("Marks deleted successfully.")
+        else:
+            print_error("Marks deletion failed.")
     except (MissingRecordError, DatabaseConnectionError) as error:
-        print(f"Unable to delete marks: {error}")
+        print_error(f"Unable to delete marks: {error}")
     except Exception as error:
-        print(f"Unexpected error while deleting marks: {error}")
+        print_error(f"Unexpected error while deleting marks: {error}")
     wait_for_enter()
 
 
 def student_average() -> None:
-    print("\nStudent Average")
+    print_banner("Student Average")
     student_id = read_positive_int("Student ID: ")
 
     if not student_exists(student_id):
-        print(f"Student with ID {student_id} does not exist.")
+        print_error(f"Student with ID {student_id} does not exist.")
         wait_for_enter()
         return
 
     average = calculate_student_average(student_id)
     if average is None:
-        print("No marks are available for this student.")
+        print_info("No marks are available for this student.")
     else:
-        print(f"Student {student_id} average: {average:.2f}")
+        print_success(f"Student {student_id} average: {average:.2f}")
 
     wait_for_enter()
 
 
 def class_average() -> None:
-    print("\nClass Average")
+    print_banner("Class Average")
     average = calculate_class_average()
     if average is None:
-        print("No marks are available to calculate a class average.")
+        print_info("No marks are available to calculate a class average.")
     else:
-        print(f"Class average: {average:.2f}")
+        print_success(f"Class average: {average:.2f}")
 
     wait_for_enter()
 
 
 def export_students() -> None:
-    print("\nExport Students")
+    print_banner("Export Students")
     try:
         path = export_students_to_csv()
-        print(f"Student export completed: {path}")
+        print_success(f"Student export completed: {path}")
     except ExportError as error:
-        print(f"Export failed: {error}")
+        print_error(f"Export failed: {error}")
     except Exception as error:
-        print(f"Unexpected export error: {error}")
+        print_error(f"Unexpected export error: {error}")
     wait_for_enter()
 
 
 def export_marks() -> None:
-    print("\nExport Marks")
+    print_banner("Export Marks")
     try:
         path = export_marks_to_csv()
-        print(f"Marks export completed: {path}")
+        print_success(f"Marks export completed: {path}")
     except ExportError as error:
-        print(f"Export failed: {error}")
+        print_error(f"Export failed: {error}")
     except Exception as error:
-        print(f"Unexpected export error: {error}")
+        print_error(f"Unexpected export error: {error}")
     wait_for_enter()
 
 

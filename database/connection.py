@@ -4,7 +4,7 @@ import os
 import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 import psycopg
 
@@ -115,6 +115,36 @@ def get_connection() -> Optional[Any]:
 def release_connection(connection: Optional[Any]) -> None:
     """Return a connection to the pool or close it if the pool is full."""
     _pool.release(connection)
+
+
+def fetch_all_rows(query: str, params: Sequence[Any] = ()) -> List[Dict[str, Any]]:
+    """Execute a query and return the result rows as dictionaries."""
+    conn = get_connection()
+    if conn is None:
+        raise DatabaseConnectionError("Unable to connect to the database.")
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, tuple(params))
+            columns = [description[0] for description in cursor.description or []]
+            rows = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in rows]
+    finally:
+        release_connection(conn)
+
+
+def execute_statement(query: str, params: Sequence[Any] = ()) -> int:
+    """Execute a statement and return the affected row count."""
+    conn = get_connection()
+    if conn is None:
+        raise DatabaseConnectionError("Unable to connect to the database.")
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, tuple(params))
+            return cursor.rowcount
+    finally:
+        release_connection(conn)
 
 
 @contextmanager

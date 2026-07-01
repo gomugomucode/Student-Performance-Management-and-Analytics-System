@@ -17,6 +17,7 @@ from models.student import update_student as update_student_record
 from services.analytics import calculate_class_average, calculate_student_average, student_exists
 from services.export import export_marks_to_csv, export_students_to_csv
 from services.error_handling import get_user_message, log_exception, normalize_exception
+from services.formatting import build_mark_rows, build_student_rows
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -151,6 +152,16 @@ def export_menu() -> None:
             break
 
 
+def _handle_action_error(action_name: str, error: Exception) -> None:
+    """Normalize an exception and print a user-friendly message."""
+    try:
+        normalized_error = normalize_exception(error, action_name)
+    except Exception:
+        raise
+    log_exception(normalized_error, action_name)
+    print_error(f"Unable to {action_name}: {get_user_message(normalized_error)}")
+
+
 def create_student() -> None:
     print_banner("Add Student")
     student_id = read_positive_int("Student ID: ")
@@ -182,12 +193,7 @@ def create_student() -> None:
         else:
             print_error("Failed to add the student.")
     except Exception as error:
-        try:
-            normalized_error = normalize_exception(error, "add student")
-        except Exception:
-            raise
-        log_exception(normalized_error, "add student")
-        print_error(f"Unable to add student: {get_user_message(normalized_error)}")
+        _handle_action_error("add student", error)
 
     wait_for_enter()
 
@@ -217,18 +223,7 @@ def view_all_students() -> None:
 
     print_success(f"Found {len(students)} student(s).")
     headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
-    rows = [
-        [
-            str(student.get("student_id", "")),
-            student.get("name", ""),
-            student.get("gender", ""),
-            str(student.get("semester", "")) if student.get("semester") is not None else "",
-            student.get("department", ""),
-            str(student.get("age", "")) if student.get("age") is not None else "",
-            student.get("grade", ""),
-        ]
-        for student in students
-    ]
+    rows = build_student_rows(students)
     print_table(headers, rows)
     wait_for_enter()
 
@@ -245,18 +240,7 @@ def search_student() -> None:
 
     print_success(f"Found {len(results)} matching student(s).")
     headers = ["ID", "Name", "Gender", "Semester", "Department", "Age", "Grade"]
-    rows = [
-        [
-            str(student.get("student_id", "")),
-            student.get("name", ""),
-            student.get("gender", ""),
-            str(student.get("semester", "")) if student.get("semester") is not None else "",
-            student.get("department", ""),
-            str(student.get("age", "")) if student.get("age") is not None else "",
-            student.get("grade", ""),
-        ]
-        for student in results
-    ]
+    rows = build_student_rows(results)
     print_table(headers, rows)
 
     try:
@@ -309,12 +293,7 @@ def update_student() -> None:
         else:
             print_error("Student update failed.")
     except Exception as error:
-        try:
-            normalized_error = normalize_exception(error, "update student")
-        except Exception:
-            raise
-        log_exception(normalized_error, "update student")
-        print_error(f"Unable to update student: {get_user_message(normalized_error)}")
+        _handle_action_error("update student", error)
     wait_for_enter()
 
 
@@ -341,12 +320,7 @@ def remove_student() -> None:
         else:
             print_error("Student deletion failed.")
     except Exception as error:
-        try:
-            normalized_error = normalize_exception(error, "delete student")
-        except Exception:
-            raise
-        log_exception(normalized_error, "delete student")
-        print_error(f"Unable to delete student: {get_user_message(normalized_error)}")
+        _handle_action_error("delete student", error)
     wait_for_enter()
 
 
@@ -452,14 +426,7 @@ def view_marks() -> None:
 
     print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
     headers = ["Record ID", "Subject", "Marks"]
-    rows = [
-        [
-            str(mark.get("mark_id", "")),
-            mark.get("subject", ""),
-            str(mark.get("marks", "")),
-        ]
-        for mark in marks
-    ]
+    rows = build_mark_rows(marks)
     print_table(headers, rows)
     wait_for_enter()
 

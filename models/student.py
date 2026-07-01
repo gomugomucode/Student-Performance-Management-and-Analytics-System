@@ -1,11 +1,11 @@
 ﻿from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from psycopg.errors import IntegrityError
 
-from database.connection import get_connection, release_connection
+from database.connection import execute_statement, fetch_all_rows, get_connection, release_connection
 from services.error_handling import log_exception, normalize_exception
 from services.logging_config import configure_logging
 from services.validation import (
@@ -26,21 +26,10 @@ from services.validation import (
 StudentRecord = Dict[str, Optional[Any]]
 
 
-def _fetch_students(query: str, params: tuple = ()) -> List[StudentRecord]:
-    """Run a query that returns student rows and convert them to dictionaries."""
+def _fetch_students(query: str, params: Tuple[Any, ...] = ()) -> List[StudentRecord]:
+    """Execute a query and return student rows as dictionaries."""
     configure_logging()
-    conn = get_connection()
-    if conn is None:
-        raise DatabaseConnectionError("Unable to connect to the database.")
-
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute(query, params)
-            columns = [description[0] for description in cursor.description or []]
-            rows = cursor.fetchall()
-        return [dict(zip(columns, row)) for row in rows]
-    finally:
-        release_connection(conn)
+    return fetch_all_rows(query, params)
 
 
 def add_student(
@@ -52,7 +41,7 @@ def add_student(
     semester: Optional[int] = None,
     department: Optional[str] = None,
 ) -> bool:
-    """Insert a new student into the database."""
+    """Insert a new student record into the database."""
     student_id = validate_student_id(student_id)
     name = validate_name(name, "Student name")
     age = validate_age(age)
@@ -133,7 +122,7 @@ def search_students(search_term: str) -> List[StudentRecord]:
 
 
 def get_student(student_id: int) -> StudentRecord:
-    """Retrieve a single student record by student_id."""
+    """Return a single student record by student_id."""
     student_id = validate_student_id(student_id)
     query = """
     SELECT student_id, name, gender, semester, department, age, grade

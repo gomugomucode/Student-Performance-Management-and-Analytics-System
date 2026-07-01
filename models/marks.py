@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from psycopg.errors import IntegrityError
 
-from database.connection import get_connection, release_connection, transaction
+from database.connection import execute_statement, fetch_all_rows, get_connection, release_connection, transaction
 from models.student import student_id_exists
 from services.error_handling import log_exception, normalize_exception
 from services.logging_config import configure_logging
@@ -22,21 +22,10 @@ from services.validation import (
 MarkRecord = Dict[str, Any]
 
 
-def _fetch_rows(query: str, params: tuple = ()) -> List[MarkRecord]:
+def _fetch_rows(query: str, params: Tuple[Any, ...] = ()) -> List[MarkRecord]:
     """Execute a query and return result rows as dictionaries."""
     configure_logging()
-    conn = get_connection()
-    if conn is None:
-        raise DatabaseConnectionError("Unable to connect to the database.")
-
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute(query, params)
-            columns = [description[0] for description in cursor.description or []]
-            rows = cursor.fetchall()
-        return [dict(zip(columns, row)) for row in rows]
-    finally:
-        release_connection(conn)
+    return fetch_all_rows(query, params)
 
 
 def _subject_exists(student_id: int, subject: str, exclude_mark_id: Optional[int] = None) -> bool:
@@ -79,7 +68,7 @@ def _subject_exists_for_connection(conn: Any, student_id: int, subject: str, exc
 
 
 def add_marks_batch(student_id: int, entries: List[Tuple[Any, Any]]) -> bool:
-    """Insert multiple marks records for a student in a single PostgreSQL transaction."""
+    """Insert multiple marks records for a student in a single transaction."""
     student_id = validate_student_id(student_id)
     if not student_id_exists(student_id):
         raise MissingRecordError(f"Student with ID {student_id} does not exist.")
@@ -120,8 +109,13 @@ def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
     return add_marks_batch(student_id, [(subject, marks)])
 
 
-def update_marks_for_subject(student_id: int, subject: str, new_subject: Optional[str] = None, new_marks: Optional[int] = None) -> bool:
-    """Update a student's marks for a selected subject using a PostgreSQL transaction."""
+def update_marks_for_subject(
+    student_id: int,
+    subject: str,
+    new_subject: Optional[str] = None,
+    new_marks: Optional[int] = None,
+) -> bool:
+    """Update a student's marks for a selected subject in a transaction."""
     student_id = validate_student_id(student_id)
     if not student_id_exists(student_id):
         raise MissingRecordError(f"Student with ID {student_id} does not exist.")
@@ -267,7 +261,7 @@ def delete_marks(mark_id: int) -> bool:
 
 
 def delete_marks_for_subject(student_id: int, subject: str) -> bool:
-    """Delete a single subject entry for a student using a PostgreSQL transaction."""
+    """Delete a single subject entry for a student in a transaction."""
     student_id = validate_student_id(student_id)
 
     if subject is None:

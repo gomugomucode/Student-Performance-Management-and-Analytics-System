@@ -1,4 +1,5 @@
 from models.marks import add_marks as add_marks_record
+from models.marks import add_marks_batch as add_marks_batch_record
 from models.marks import delete_marks as delete_marks_record
 from models.marks import get_marks as fetch_marks
 from models.marks import update_marks as update_marks_record
@@ -350,6 +351,39 @@ def _select_student_from_name() -> dict:
     return results[choice - 1]
 
 
+def _collect_mark_entries() -> list[tuple[str, int]]:
+    """Prompt the user to enter one or more subject/mark pairs."""
+    print_info("How would you like to add marks?")
+    print_menu(
+        "Options",
+        [
+            "1. Specify number of subjects",
+            "2. Continue adding until I choose to stop",
+        ],
+    )
+
+    mode = read_choice("Select an option: ", 1, 2)
+    entries: list[tuple[str, int]] = []
+
+    if mode == 1:
+        count = read_positive_int("How many subjects? ")
+        for index in range(1, count + 1):
+            subject = read_non_empty_text(f"Subject {index}: ")
+            marks = read_int_range(f"Marks (0-100) for {subject}: ", 0, 100)
+            entries.append((subject, marks))
+        return entries
+
+    while True:
+        subject = read_non_empty_text("Subject: ")
+        marks = read_int_range(f"Marks (0-100) for {subject}: ", 0, 100)
+        entries.append((subject, marks))
+
+        if not confirm_action("Add another subject? (Y/N): "):
+            break
+
+    return entries
+
+
 def create_marks() -> None:
     print_banner("Add Marks")
 
@@ -360,13 +394,12 @@ def create_marks() -> None:
         return
 
     student_id = int(student["student_id"])
-    subject = read_non_empty_text("Subject: ")
-    marks = read_int_range("Marks (0-100): ", 0, 100)
 
     try:
-        success = add_marks_record(student_id, subject, marks)
+        entries = _collect_mark_entries()
+        success = add_marks_batch_record(student_id, entries)
         if success:
-            print_success(f"Marks added successfully for {student['name']}.")
+            print_success(f"Added {len(entries)} subject mark(s) for {student['name']} successfully.")
         else:
             print_error("Failed to add marks.")
     except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:

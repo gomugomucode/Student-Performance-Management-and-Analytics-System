@@ -1,10 +1,10 @@
 ﻿from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from psycopg.errors import IntegrityError
 
-from database.connection import get_connection, release_connection
+from database.connection import get_connection, release_connection, transaction
 from models.student import student_id_exists
 from services.validation import (
     DatabaseConnectionError,
@@ -58,31 +58,60 @@ def _subject_exists(student_id: int, subject: str, exclude_mark_id: Optional[int
         release_connection(conn)
 
 
-def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
-    """Add a marks record for a student."""
-    student_id = validate_student_id(student_id)
-    subject_text = validate_subject_name(subject)
-    marks_value = validate_marks(marks)
+def _subject_exists_for_connection(conn: Any, student_id: int, subject: str, exclude_mark_id: Optional[int] = None) -> bool:
+    """Check whether a marks entry already exists for the supplied connection."""
+    query = "SELECT 1 FROM marks WHERE student_id = %s AND LOWER(subject) = LOWER(%s)"
+    params: List[Any] = [student_id, subject]
 
+    if exclude_mark_id is not None:
+        query += " AND mark_id != %s"
+        params.append(exclude_mark_id)
+
+    query += " LIMIT 1;"
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, tuple(params))
+        return cursor.fetchone() is not None
+
+
+def add_marks_batch(student_id: int, entries: List[Tuple[Any, Any]]) -> bool:
+    """Insert multiple marks records for a student in a single PostgreSQL transaction."""
+    student_id = validate_student_id(student_id)
     if not student_id_exists(student_id):
         raise MissingRecordError(f"Student with ID {student_id} does not exist.")
 
-    if _subject_exists(student_id, subject_text):
-        raise DuplicateIDError(f"Student {student_id} already has marks for subject '{subject_text}'.")
+    if not entries:
+        raise ValidationError("At least one subject is required.")
 
-    query = "INSERT INTO marks (student_id, subject, marks) VALUES (%s, %s, %s);"
-    conn = get_connection()
-    if conn is None:
-        raise DatabaseConnectionError("Database connection failed while adding marks.")
+    validated_entries: List[Tuple[str, int]] = []
+    seen_subjects = set()
+
+    for subject, marks in entries:
+        subject_text = validate_subject_name(subject)
+        marks_value = validate_marks(marks)
+        normalized_subject = subject_text.lower()
+        if normalized_subject in seen_subjects:
+            raise DuplicateIDError(f"Student {student_id} already has marks for subject '{subject_text}'.")
+        seen_subjects.add(normalized_subject)
+        validated_entries.append((subject_text, marks_value))
 
     try:
-        with conn:
-            conn.execute(query, (student_id, subject_text, marks_value))
+        with transaction() as conn:
+            for subject_text, marks_value in validated_entries:
+                if _subject_exists_for_connection(conn, student_id, subject_text):
+                    raise DuplicateIDError(f"Student {student_id} already has marks for subject '{subject_text}'.")
+
+                query = "INSERT INTO marks (student_id, subject, marks) VALUES (%s, %s, %s);"
+                with conn.cursor() as cursor:
+                    cursor.execute(query, (student_id, subject_text, marks_value))
         return True
     except IntegrityError as error:
-        raise DuplicateIDError(f"Marks for subject '{subject_text}' already exist for student {student_id}.") from error
-    finally:
-        release_connection(conn)
+        raise DuplicateIDError("A duplicate subject entry exists for this student.") from error
+
+
+def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
+    """Add a marks record for a student."""
+    return add_marks_batch(student_id, [(subject, marks)])
 
 
 def get_marks(student_id: int) -> List[MarkRecord]:

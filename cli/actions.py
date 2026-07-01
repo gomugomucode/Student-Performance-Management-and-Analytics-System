@@ -327,16 +327,46 @@ def remove_student() -> None:
     wait_for_enter()
 
 
+def _select_student_from_name() -> dict:
+    """Prompt for a student name, find matching records, and let the user pick one."""
+    print_banner("Select Student")
+    search_term = read_non_empty_text("Enter student name to search: ")
+    results = search_students_records(search_term)
+
+    if not results:
+        print_error("No students matched your search.")
+        wait_for_enter()
+        raise MissingRecordError("No matching student found.")
+
+    if len(results) == 1:
+        return results[0]
+
+    print_success(f"Found {len(results)} matching student(s).")
+    headers = ["Option", "ID", "Name"]
+    rows = [[str(index), str(student.get("student_id", "")), student.get("name", "")] for index, student in enumerate(results, start=1)]
+    print_table(headers, rows)
+
+    choice = read_choice("Select a student: ", 1, len(results))
+    return results[choice - 1]
+
+
 def create_marks() -> None:
     print_banner("Add Marks")
-    student_id = read_positive_int("Student ID: ")
+
+    try:
+        student = _select_student_from_name()
+    except MissingRecordError:
+        wait_for_enter()
+        return
+
+    student_id = int(student["student_id"])
     subject = read_non_empty_text("Subject: ")
     marks = read_int_range("Marks (0-100): ", 0, 100)
 
     try:
         success = add_marks_record(student_id, subject, marks)
         if success:
-            print_success("Marks added successfully.")
+            print_success(f"Marks added successfully for {student['name']}.")
         else:
             print_error("Failed to add marks.")
     except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
@@ -348,20 +378,21 @@ def create_marks() -> None:
 
 def view_marks() -> None:
     print_banner("View Marks")
-    student_id = read_positive_int("Student ID: ")
 
-    if not student_id_exists(student_id):
-        print_error(f"Student with ID {student_id} does not exist.")
+    try:
+        student = _select_student_from_name()
+    except MissingRecordError:
         wait_for_enter()
         return
 
+    student_id = int(student["student_id"])
     marks = fetch_marks(student_id)
     if not marks:
-        print_info(f"No marks found for student ID {student_id}.")
+        print_info(f"No marks found for student {student['name']}.")
         wait_for_enter()
         return
 
-    print_success(f"Found {len(marks)} record(s) for student {student_id}.")
+    print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
     headers = ["Record ID", "Subject", "Marks"]
     rows = [
         [
@@ -377,17 +408,43 @@ def view_marks() -> None:
 
 def update_marks() -> None:
     print_banner("Update Marks")
-    mark_id = read_positive_int("Marks record ID: ")
-    subject = read_optional_text("Subject [optional]: ")
-    marks = read_int_range("Marks (0-100) [optional]: ", 0, 100, allow_empty=True)
 
-    if subject is None and marks is None:
+    try:
+        student = _select_student_from_name()
+    except MissingRecordError:
+        wait_for_enter()
+        return
+
+    student_id = int(student["student_id"])
+    marks = fetch_marks(student_id)
+    if not marks:
+        print_info(f"No marks found for student {student['name']}.")
+        wait_for_enter()
+        return
+
+    print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
+    headers = ["Record ID", "Subject", "Marks"]
+    rows = [
+        [
+            str(mark.get("mark_id", "")),
+            mark.get("subject", ""),
+            str(mark.get("marks", "")),
+        ]
+        for mark in marks
+    ]
+    print_table(headers, rows)
+
+    mark_id = read_positive_int("Select marks record ID to update: ")
+    subject = read_optional_text("Subject [optional]: ")
+    marks_value = read_int_range("Marks (0-100) [optional]: ", 0, 100, allow_empty=True)
+
+    if subject is None and marks_value is None:
         print_info("No updates provided. Marks update canceled.")
         wait_for_enter()
         return
 
     try:
-        success = update_marks_record(mark_id, subject=subject, marks=marks)
+        success = update_marks_record(mark_id, subject=subject, marks=marks_value)
         if success:
             print_success("Marks updated successfully.")
         else:
@@ -401,8 +458,33 @@ def update_marks() -> None:
 
 def remove_marks() -> None:
     print_banner("Delete Marks")
-    mark_id = read_positive_int("Marks record ID: ")
 
+    try:
+        student = _select_student_from_name()
+    except MissingRecordError:
+        wait_for_enter()
+        return
+
+    student_id = int(student["student_id"])
+    marks = fetch_marks(student_id)
+    if not marks:
+        print_info(f"No marks found for student {student['name']}.")
+        wait_for_enter()
+        return
+
+    print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
+    headers = ["Record ID", "Subject", "Marks"]
+    rows = [
+        [
+            str(mark.get("mark_id", "")),
+            mark.get("subject", ""),
+            str(mark.get("marks", "")),
+        ]
+        for mark in marks
+    ]
+    print_table(headers, rows)
+
+    mark_id = read_positive_int("Select marks record ID to delete: ")
     if not confirm_action("Are you sure you want to delete this marks record? (Y/N): "):
         print_info("Delete operation canceled.")
         wait_for_enter()

@@ -105,7 +105,7 @@ def search_students(search_term: str) -> List[StudentRecord]:
     query = """
     SELECT student_id, name, gender, semester, department, age, grade
     FROM students
-    WHERE name LIKE %s OR student_id = %s
+    WHERE name ILIKE %s OR student_id = %s
     ORDER BY student_id;
     """
     student_id = int(search_term) if search_term.isdigit() else -1

@@ -9,7 +9,7 @@ from models.student import get_student as fetch_student
 from models.student import search_students as search_students_records
 from models.student import student_id_exists
 from models.student import update_student as update_student_record
-from services.analytics import class_average as calculate_class_average, calculate_student_average, student_exists
+from services.analytics import calculate_class_average, calculate_student_average, student_exists
 from services.export import export_marks_to_csv, export_students_to_csv
 from services.validation import (
     DatabaseConnectionError,

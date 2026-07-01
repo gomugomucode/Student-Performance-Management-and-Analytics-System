@@ -6,14 +6,21 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
+from dotenv import load_dotenv
+
+
 import psycopg
 
 from services.error_handling import log_exception
 from services.logging_config import configure_logging
 from services.validation import DatabaseConnectionError
 
+# BASE_DIR = Path(__file__).resolve().parent.parent
+# DOTENV_PATH = BASE_DIR / ".env"
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-DOTENV_PATH = BASE_DIR / ".env"
+
+load_dotenv(BASE_DIR / ".env")
 
 
 class ConnectionPool:
@@ -63,35 +70,17 @@ class ConnectionPool:
 _pool = ConnectionPool()
 
 
-def _load_env_file(path: Path) -> Dict[str, str]:
-    values: Dict[str, str] = {}
-    if not path.exists():
-        return values
 
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip().strip("\"'")
-
-    return values
-
-
-def get_database_config() -> Dict[str, Any]:
-    """Load PostgreSQL configuration from environment variables or a .env file."""
-    env_values = _load_env_file(DOTENV_PATH)
-    merged = {**os.environ, **env_values}
-
+def get_database_config():
     return {
-        "host": merged.get("DB_HOST", "localhost"),
-        "port": int(merged.get("DB_PORT", "5432")),
-        "dbname": merged.get("DB_NAME", "student_performance"),
-        "user": merged.get("DB_USER", "postgres"),
-        "password": merged.get("DB_PASSWORD", "postgres"),
+        "host": os.getenv("DB_HOST", "localhost"),
+        "port": int(os.getenv("DB_PORT", 5432)),
+        "dbname": os.getenv("DB_NAME", "student_performance"),
+        "user": os.getenv("DB_USER", "postgres"),
+        "password": os.getenv("DB_PASSWORD"),
     }
 
+print(get_database_config())
 
 def get_connection_string() -> str:
     """Build a PostgreSQL connection string from configuration values."""
@@ -108,6 +97,7 @@ def get_connection() -> Optional[Any]:
     try:
         return _pool.get_connection()
     except Exception as error:
+        print(f"\nDATABASE CONNECTION ERROR:\n{error}\n")
         log_exception(error, "database connection")
         return None
 

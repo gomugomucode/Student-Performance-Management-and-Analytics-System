@@ -1,10 +1,10 @@
 ﻿from __future__ import annotations
 
-import sqlite3
-from sqlite3 import IntegrityError
 from typing import Any, Dict, List, Optional
 
-from database.connection import get_connection
+from psycopg.errors import IntegrityError
+
+from database.connection import get_connection, release_connection
 from models.student import student_id_exists
 from services.validation import (
     DatabaseConnectionError,
@@ -25,22 +25,23 @@ def _fetch_rows(query: str, params: tuple = ()) -> List[MarkRecord]:
     if conn is None:
         raise DatabaseConnectionError("Unable to connect to the database.")
 
-    conn.row_factory = sqlite3.Row
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, params)
-        return [dict(row) for row in cursor.fetchall()]
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            columns = [description[0] for description in cursor.description or []]
+            rows = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in rows]
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def _subject_exists(student_id: int, subject: str, exclude_mark_id: Optional[int] = None) -> bool:
     """Return True if the student already has a marks entry for the given subject."""
-    query = "SELECT 1 FROM marks WHERE student_id = ? AND LOWER(subject) = LOWER(?)"
+    query = "SELECT 1 FROM marks WHERE student_id = %s AND LOWER(subject) = LOWER(%s)"
     params: List[Any] = [student_id, subject]
 
     if exclude_mark_id is not None:
-        query += " AND mark_id != ?"
+        query += " AND mark_id != %s"
         params.append(exclude_mark_id)
 
     query += " LIMIT 1;"
@@ -50,11 +51,11 @@ def _subject_exists(student_id: int, subject: str, exclude_mark_id: Optional[int
         raise DatabaseConnectionError("Unable to connect to the database.")
 
     try:
-        cursor = conn.cursor()
-        cursor.execute(query, tuple(params))
-        return cursor.fetchone() is not None
+        with conn.cursor() as cursor:
+            cursor.execute(query, tuple(params))
+            return cursor.fetchone() is not None
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
@@ -69,33 +70,32 @@ def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
     if _subject_exists(student_id, subject_text):
         raise DuplicateIDError(f"Student {student_id} already has marks for subject '{subject_text}'.")
 
-    query = "INSERT INTO marks (student_id, subject, marks) VALUES (?, ?, ?);"
+    query = "INSERT INTO marks (student_id, subject, marks) VALUES (%s, %s, %s);"
     conn = get_connection()
     if conn is None:
         raise DatabaseConnectionError("Database connection failed while adding marks.")
 
     try:
         with conn:
-            conn.execute("PRAGMA foreign_keys = ON;")
             conn.execute(query, (student_id, subject_text, marks_value))
         return True
     except IntegrityError as error:
         raise DuplicateIDError(f"Marks for subject '{subject_text}' already exist for student {student_id}.") from error
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def get_marks(student_id: int) -> List[MarkRecord]:
     """Retrieve marks for a specific student."""
     student_id = validate_student_id(student_id)
-    query = "SELECT mark_id, student_id, subject, marks FROM marks WHERE student_id = ? ORDER BY subject;"
+    query = "SELECT mark_id, student_id, subject, marks FROM marks WHERE student_id = %s ORDER BY subject;"
     return _fetch_rows(query, (student_id,))
 
 
 def get_mark(mark_id: int) -> Optional[MarkRecord]:
     """Return a single marks record by its record ID."""
     mark_id = validate_student_id(mark_id)
-    query = "SELECT mark_id, student_id, subject, marks FROM marks WHERE mark_id = ?;"
+    query = "SELECT mark_id, student_id, subject, marks FROM marks WHERE mark_id = %s;"
     rows = _fetch_rows(query, (mark_id,))
     return rows[0] if rows else None
 
@@ -117,15 +117,15 @@ def update_marks(mark_id: int, subject: Any = None, marks: Any = None) -> bool:
         subject_text = validate_subject_name(subject)
         if _subject_exists(record["student_id"], subject_text, exclude_mark_id=mark_id):
             raise DuplicateIDError(f"Student {record['student_id']} already has marks for subject '{subject_text}'.")
-        update_fields.append("subject = ?")
+        update_fields.append("subject = %s")
         params.append(subject_text)
 
     if marks is not None:
         marks_value = validate_marks(marks)
-        update_fields.append("marks = ?")
+        update_fields.append("marks = %s")
         params.append(marks_value)
 
-    query = f"UPDATE marks SET {', '.join(update_fields)} WHERE mark_id = ?;"
+    query = f"UPDATE marks SET {', '.join(update_fields)} WHERE mark_id = %s;"
     params.append(mark_id)
 
     conn = get_connection()
@@ -134,20 +134,21 @@ def update_marks(mark_id: int, subject: Any = None, marks: Any = None) -> bool:
 
     try:
         with conn:
-            cursor = conn.execute(query, tuple(params))
-            if cursor.rowcount == 0:
-                raise MissingRecordError(f"No marks record found with ID {mark_id}.")
+            with conn.cursor() as cursor:
+                cursor.execute(query, tuple(params))
+                if cursor.rowcount == 0:
+                    raise MissingRecordError(f"No marks record found with ID {mark_id}.")
         return True
     except IntegrityError as error:
         raise DuplicateIDError("A duplicate subject entry exists for this student.") from error
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def delete_marks(mark_id: int) -> bool:
     """Delete a marks record from the database."""
     mark_id = validate_student_id(mark_id)
-    query = "DELETE FROM marks WHERE mark_id = ?;"
+    query = "DELETE FROM marks WHERE mark_id = %s;"
 
     conn = get_connection()
     if conn is None:
@@ -155,9 +156,10 @@ def delete_marks(mark_id: int) -> bool:
 
     try:
         with conn:
-            cursor = conn.execute(query, (mark_id,))
-            if cursor.rowcount == 0:
-                raise MissingRecordError(f"No record found with mark_id: {mark_id}")
+            with conn.cursor() as cursor:
+                cursor.execute(query, (mark_id,))
+                if cursor.rowcount == 0:
+                    raise MissingRecordError(f"No record found with mark_id: {mark_id}")
         return True
     finally:
-        conn.close()
+        release_connection(conn)

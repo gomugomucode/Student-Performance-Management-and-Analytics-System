@@ -1,5 +1,5 @@
 import pandas as pd
-from database.connection import get_connection
+from database.connection import get_connection, release_connection
 from services.analytics import (
     complete_class_report,
     detailed_student_report,
@@ -32,7 +32,7 @@ def export_students_to_csv() -> str:
         df = pd.read_sql_query(query, conn)
         return _write_dataframe_csv("students_export.csv", df)
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def export_marks_to_csv() -> str:
@@ -45,7 +45,7 @@ def export_marks_to_csv() -> str:
         df = pd.read_sql_query(query, conn)
         return _write_dataframe_csv("marks_export.csv", df)
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def export_individual_student_report_to_csv(student_id: int) -> str:

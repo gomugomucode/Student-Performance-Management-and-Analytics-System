@@ -17,7 +17,7 @@ class MissingRecordError(ValidationError):
 
 
 class DatabaseConnectionError(Exception):
-    """Raised when the SQLite database cannot be opened."""
+    """Raised when the PostgreSQL database cannot be opened."""
 
 
 class ExportError(Exception):

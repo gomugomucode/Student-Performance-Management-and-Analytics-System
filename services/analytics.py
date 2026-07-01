@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from database.connection import get_connection
+from database.connection import get_connection, release_connection
 from models.student import get_student
 from typing import Optional
 
@@ -16,7 +16,7 @@ GRADE_BOUNDARIES = {
 
 
 def _load_marks_dataframe() -> pd.DataFrame:
-    """Load marks joined with student names from SQLite into a pandas DataFrame."""
+    """Load marks joined with student names from PostgreSQL into a pandas DataFrame."""
     conn = get_connection()
     if conn is None:
         return pd.DataFrame()
@@ -42,7 +42,7 @@ def _load_marks_dataframe() -> pd.DataFrame:
     except Exception:
         return pd.DataFrame()
     finally:
-        conn.close()
+        release_connection(conn)
 
 
 def _compute_grade(percentage: float) -> str:

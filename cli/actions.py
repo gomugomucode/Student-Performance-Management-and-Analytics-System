@@ -231,11 +231,11 @@ def view_all_students() -> None:
 
 def search_student() -> None:
     print_banner("Search Student")
-    query = read_non_empty_text("Enter student ID or name fragment: ")
+    query = read_non_empty_text("Enter a student name fragment: ")
     results = search_students_records(query)
 
     if not results:
-        print_error("No students matched your search. Try a different ID or name.")
+        print_info("No students matched your search. Try a different name fragment.")
         wait_for_enter()
         return
 
@@ -254,6 +254,14 @@ def search_student() -> None:
         for student in results
     ]
     print_table(headers, rows)
+
+    try:
+        selected_student = _select_student_from_name(query)
+    except MissingRecordError:
+        wait_for_enter()
+        return
+
+    print_success(f"Selected student: {selected_student['name']}")
     wait_for_enter()
 
 
@@ -332,14 +340,14 @@ def remove_student() -> None:
     wait_for_enter()
 
 
-def _select_student_from_name() -> dict:
+def _select_student_from_name(search_term: Optional[str] = None) -> dict:
     """Prompt for a student name, find matching records, and let the user pick one."""
     print_banner("Select Student")
-    search_term = read_non_empty_text("Enter student name to search: ")
+    search_term = search_term or read_non_empty_text("Enter student name to search: ")
     results = search_students_records(search_term)
 
     if not results:
-        print_error("No students matched your search.")
+        print_info("No students matched your search. Try a different name fragment.")
         wait_for_enter()
         raise MissingRecordError("No matching student found.")
 

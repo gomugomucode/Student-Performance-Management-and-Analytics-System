@@ -101,15 +101,18 @@ def get_all_students() -> List[StudentRecord]:
 
 
 def search_students(search_term: str) -> List[StudentRecord]:
-    """Search student records by name fragment or exact student ID."""
+    """Search student records by name fragment using PostgreSQL ILIKE."""
+    if not search_term or not search_term.strip():
+        return []
+
+    normalized_term = search_term.strip()
     query = """
     SELECT student_id, name, gender, semester, department, age, grade
     FROM students
-    WHERE name ILIKE %s OR student_id = %s
+    WHERE name ILIKE %s
     ORDER BY student_id;
     """
-    student_id = int(search_term) if search_term.isdigit() else -1
-    return _fetch_students(query, (f"%{search_term}%", student_id))
+    return _fetch_students(query, (f"%{normalized_term}%",))
 
 
 def get_student(student_id: int) -> StudentRecord:

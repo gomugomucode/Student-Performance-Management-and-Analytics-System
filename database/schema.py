@@ -1,7 +1,9 @@
+from typing import Optional
+
 from database.connection import get_connection, release_connection
 
 
-def create_tables():
+def create_tables() -> None:
     """Create the students and marks tables with PostgreSQL-compatible constraints."""
 
     students_table = """

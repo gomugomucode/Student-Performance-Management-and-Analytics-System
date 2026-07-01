@@ -2,7 +2,7 @@
 
 ## Introduction
 
-A terminal-based Python application for managing student records, entering marks, generating analytics, and exporting CSV reports. This project is designed for academic administrators and instructors who need a lightweight, easy-to-run system for student performance tracking.
+A terminal-based Python application for managing student records, entering marks, generating analytics, and exporting CSV reports. The system is designed for instructors and administrators who need a lightweight, easy-to-run workflow for student performance tracking with PostgreSQL-backed persistence.
 
 ## Features
 
@@ -16,7 +16,8 @@ A terminal-based Python application for managing student records, entering marks
 ## Technologies Used
 
 - Python 3.10+
-- SQLite for local data storage
+- PostgreSQL for durable data storage
+- psycopg for database access
 - pandas for analytics and CSV export
 - NumPy for numeric calculations
 - Standard library modules for terminal UI and file handling
@@ -73,7 +74,7 @@ python -m unittest discover tests
 
 ## Database Schema
 
-The application uses a local SQLite database file named `database.db` stored in the project root.
+The application uses a PostgreSQL database configured through environment variables or a .env file. The default connection settings expect a local PostgreSQL instance with the database name, user, and password supplied through DB_NAME, DB_USER, and DB_PASSWORD. A sample environment template is available in .env.example.
 
 ### `students` table
 
@@ -192,3 +193,9 @@ python main.py
 ## License
 
 This project is available under the MIT License.
+## Production-readiness notes
+
+- The application uses parameterized SQL throughout the data layer, which helps avoid SQL injection.
+- Database transactions are used for multi-step writes such as marks updates and deletions.
+- Logging is configured with rotating files for application, database, and error activity.
+- Further hardening opportunities include secrets management, database connection pooling tuning, and containerized deployment.

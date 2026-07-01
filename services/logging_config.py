@@ -34,6 +34,10 @@ def configure_logging(log_dir: Optional[Path] = None) -> None:
     logger.setLevel(logging.INFO)
     logger.propagate = False
 
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        handler.close()
+
     for handler_name, file_name, level in [
         ("application", "application.log", logging.INFO),
         ("database", "database.log", logging.INFO),

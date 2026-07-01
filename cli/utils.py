@@ -16,7 +16,11 @@ def read_choice(prompt: str, min_value: int, max_value: int) -> int:
 def read_non_empty_text(prompt: str) -> str:
     """Read a non-empty string from the user."""
     while True:
-        value = input(prompt).strip()
+        try:
+            value = input(prompt).strip()
+        except EOFError:
+            print_error("Input closed. Please try again.")
+            raise
         if value:
             return value
         print_error("Value cannot be empty. Please enter valid text.")

@@ -1,8 +1,11 @@
+from typing import Optional
+
 from models.marks import add_marks as add_marks_record
 from models.marks import add_marks_batch as add_marks_batch_record
 from models.marks import delete_marks as delete_marks_record
 from models.marks import get_marks as fetch_marks
 from models.marks import update_marks as update_marks_record
+from models.marks import update_marks_for_subject as update_marks_for_subject_record
 from models.student import add_student as add_student_record
 from models.student import delete_student as delete_student_record
 from models.student import get_all_students as fetch_all_students
@@ -456,30 +459,35 @@ def update_marks() -> None:
         return
 
     print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
-    headers = ["Record ID", "Subject", "Marks"]
-    rows = [
-        [
-            str(mark.get("mark_id", "")),
-            mark.get("subject", ""),
-            str(mark.get("marks", "")),
-        ]
-        for mark in marks
-    ]
+    headers = ["Subject", "Marks"]
+    rows = [[mark.get("subject", ""), str(mark.get("marks", ""))] for mark in marks]
     print_table(headers, rows)
 
-    mark_id = read_positive_int("Select marks record ID to update: ")
-    subject = read_optional_text("Subject [optional]: ")
-    marks_value = read_int_range("Marks (0-100) [optional]: ", 0, 100, allow_empty=True)
+    subject = read_non_empty_text("Enter the subject to update: ")
+    print_info("Which field would you like to update?")
+    print_menu(
+        "Options",
+        [
+            "1. Subject",
+            "2. Marks",
+            "3. Both",
+        ],
+    )
+    field_choice = read_choice("Select an option: ", 1, 3)
 
-    if subject is None and marks_value is None:
-        print_info("No updates provided. Marks update canceled.")
-        wait_for_enter()
-        return
+    new_subject: Optional[str] = None
+    new_marks: Optional[int] = None
+
+    if field_choice in {1, 3}:
+        new_subject = read_non_empty_text("New subject: ")
+
+    if field_choice in {2, 3}:
+        new_marks = read_int_range("New marks (0-100): ", 0, 100)
 
     try:
-        success = update_marks_record(mark_id, subject=subject, marks=marks_value)
+        success = update_marks_for_subject_record(student_id, subject, new_subject=new_subject, new_marks=new_marks)
         if success:
-            print_success("Marks updated successfully.")
+            print_success(f"Marks updated successfully for subject '{subject}'.")
         else:
             print_error("Marks update failed.")
     except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:

@@ -114,6 +114,65 @@ def add_marks(student_id: int, subject: Any, marks: Any) -> bool:
     return add_marks_batch(student_id, [(subject, marks)])
 
 
+def update_marks_for_subject(student_id: int, subject: str, new_subject: Optional[str] = None, new_marks: Optional[int] = None) -> bool:
+    """Update a student's marks for a selected subject using a PostgreSQL transaction."""
+    student_id = validate_student_id(student_id)
+    if not student_id_exists(student_id):
+        raise MissingRecordError(f"Student with ID {student_id} does not exist.")
+
+    if subject is None:
+        raise ValidationError("Subject is required.")
+
+    subject_text = validate_subject_name(subject)
+    if new_subject is None and new_marks is None:
+        raise ValidationError("No values were provided to update.")
+
+    if new_subject is not None:
+        new_subject_text = validate_subject_name(new_subject)
+    else:
+        new_subject_text = None
+
+    if new_marks is not None:
+        new_marks_value = validate_marks(new_marks)
+    else:
+        new_marks_value = None
+
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT mark_id, subject, marks FROM marks WHERE student_id = %s AND LOWER(subject) = LOWER(%s) LIMIT 1;",
+                    (student_id, subject_text),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise MissingRecordError(f"No marks found for subject '{subject_text}'.")
+
+                mark_id = row[0]
+                current_subject = row[1]
+                current_marks = row[2]
+
+                if new_subject_text is not None and new_subject_text.lower() != current_subject.lower():
+                    if _subject_exists_for_connection(conn, student_id, new_subject_text, exclude_mark_id=mark_id):
+                        raise DuplicateIDError(f"Student {student_id} already has marks for subject '{new_subject_text}'.")
+
+                update_fields: List[str] = []
+                params: List[Any] = []
+                if new_subject_text is not None:
+                    update_fields.append("subject = %s")
+                    params.append(new_subject_text)
+                if new_marks_value is not None:
+                    update_fields.append("marks = %s")
+                    params.append(new_marks_value)
+
+                params.extend([mark_id])
+                query = f"UPDATE marks SET {', '.join(update_fields)} WHERE mark_id = %s;"
+                cursor.execute(query, tuple(params))
+        return True
+    except IntegrityError as error:
+        raise DuplicateIDError("A duplicate subject entry exists for this student.") from error
+
+
 def get_marks(student_id: int) -> List[MarkRecord]:
     """Retrieve marks for a specific student."""
     student_id = validate_student_id(student_id)

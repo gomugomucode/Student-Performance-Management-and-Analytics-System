@@ -6,6 +6,7 @@ from psycopg.errors import IntegrityError
 
 from database.connection import get_connection, release_connection, transaction
 from models.student import student_id_exists
+from services.error_handling import log_exception, normalize_exception
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -228,7 +229,12 @@ def update_marks(mark_id: int, subject: Any = None, marks: Any = None) -> bool:
                     raise MissingRecordError(f"No marks record found with ID {mark_id}.")
         return True
     except IntegrityError as error:
+        log_exception(error, "update marks by id")
         raise DuplicateIDError("A duplicate subject entry exists for this student.") from error
+    except Exception as error:
+        normalized_error = normalize_exception(error, "update marks by id")
+        log_exception(normalized_error, "update marks by id")
+        raise normalized_error from error
     finally:
         release_connection(conn)
 
@@ -282,4 +288,9 @@ def delete_marks_for_subject(student_id: int, subject: str) -> bool:
                     raise MissingRecordError(f"No marks found for subject '{subject_text}'.")
         return True
     except IntegrityError as error:
-        raise DatabaseConnectionError(f"Unable to delete marks for subject '{subject_text}': {error}") from error
+        log_exception(error, "delete marks for subject")
+        raise DatabaseConnectionError(f"Unable to delete marks for subject '{subject_text}'.") from error
+    except Exception as error:
+        normalized_error = normalize_exception(error, "delete marks for subject")
+        log_exception(normalized_error, "delete marks for subject")
+        raise normalized_error from error

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from psycopg.errors import IntegrityError
 
 from database.connection import get_connection, release_connection
+from services.error_handling import log_exception, normalize_exception
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -72,7 +73,12 @@ def add_student(
             conn.execute(query, (student_id, name, gender, semester, department, age, grade))
         return True
     except IntegrityError as error:
+        log_exception(error, "insert student")
         raise DuplicateIDError(f"Student ID {student_id} already exists.") from error
+    except Exception as error:
+        normalized_error = normalize_exception(error, "insert student")
+        log_exception(normalized_error, "insert student")
+        raise normalized_error from error
     finally:
         release_connection(conn)
 
@@ -90,6 +96,10 @@ def student_id_exists(student_id: int) -> bool:
         with conn.cursor() as cursor:
             cursor.execute(query, (student_id,))
             return cursor.fetchone() is not None
+    except Exception as error:
+        normalized_error = normalize_exception(error, "check student id")
+        log_exception(normalized_error, "check student id")
+        raise normalized_error from error
     finally:
         release_connection(conn)
 
@@ -177,6 +187,10 @@ def update_student(
                 if cursor.rowcount == 0:
                     raise MissingRecordError(f"Student with ID {student_id} does not exist.")
         return True
+    except Exception as error:
+        normalized_error = normalize_exception(error, "update student")
+        log_exception(normalized_error, "update student")
+        raise normalized_error from error
     finally:
         release_connection(conn)
 
@@ -197,5 +211,9 @@ def delete_student(student_id: int) -> bool:
                 if cursor.rowcount == 0:
                     raise MissingRecordError(f"Student with ID {student_id} does not exist.")
         return True
+    except Exception as error:
+        normalized_error = normalize_exception(error, "delete student")
+        log_exception(normalized_error, "delete student")
+        raise normalized_error from error
     finally:
         release_connection(conn)

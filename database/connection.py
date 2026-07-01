@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterator, Optional
 
 import psycopg
 
+from services.error_handling import log_exception
 from services.validation import DatabaseConnectionError
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -105,7 +106,7 @@ def get_connection() -> Optional[Any]:
     try:
         return _pool.get_connection()
     except Exception as error:
-        print(f"Database connection error: {error}")
+        log_exception(error, "database connection")
         return None
 
 
@@ -124,8 +125,11 @@ def transaction() -> Iterator[Any]:
     try:
         with connection:
             yield connection
-    except Exception:
-        connection.rollback()
-        raise
+    except Exception as error:
+        try:
+            connection.rollback()
+        except Exception as rollback_error:
+            log_exception(rollback_error, "transaction rollback")
+        raise error
     finally:
         release_connection(connection)

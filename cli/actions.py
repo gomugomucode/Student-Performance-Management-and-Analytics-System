@@ -16,6 +16,7 @@ from models.student import student_id_exists
 from models.student import update_student as update_student_record
 from services.analytics import calculate_class_average, calculate_student_average, student_exists
 from services.export import export_marks_to_csv, export_students_to_csv
+from services.error_handling import get_user_message, log_exception, normalize_exception
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -180,10 +181,13 @@ def create_student() -> None:
             print_success("Student added successfully.")
         else:
             print_error("Failed to add the student.")
-    except (ValidationError, DuplicateIDError, DatabaseConnectionError) as error:
-        print_error(f"Unable to add student: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while adding student: {error}")
+        try:
+            normalized_error = normalize_exception(error, "add student")
+        except Exception:
+            raise
+        log_exception(normalized_error, "add student")
+        print_error(f"Unable to add student: {get_user_message(normalized_error)}")
 
     wait_for_enter()
 
@@ -304,10 +308,13 @@ def update_student() -> None:
             print_success("Student updated successfully.")
         else:
             print_error("Student update failed.")
-    except (ValidationError, MissingRecordError, DatabaseConnectionError) as error:
-        print_error(f"Unable to update student: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while updating student: {error}")
+        try:
+            normalized_error = normalize_exception(error, "update student")
+        except Exception:
+            raise
+        log_exception(normalized_error, "update student")
+        print_error(f"Unable to update student: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -333,10 +340,13 @@ def remove_student() -> None:
             print_success("Student deleted successfully.")
         else:
             print_error("Student deletion failed.")
-    except (MissingRecordError, DatabaseConnectionError) as error:
-        print_error(f"Unable to delete student: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while deleting student: {error}")
+        try:
+            normalized_error = normalize_exception(error, "delete student")
+        except Exception:
+            raise
+        log_exception(normalized_error, "delete student")
+        print_error(f"Unable to delete student: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -414,10 +424,13 @@ def create_marks() -> None:
             print_success(f"Added {len(entries)} subject mark(s) for {student['name']} successfully.")
         else:
             print_error("Failed to add marks.")
-    except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
-        print_error(f"Unable to add marks: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while adding marks: {error}")
+        try:
+            normalized_error = normalize_exception(error, "add marks")
+        except Exception:
+            raise
+        log_exception(normalized_error, "add marks")
+        print_error(f"Unable to add marks: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -499,10 +512,13 @@ def update_marks() -> None:
             print_success(f"Marks updated successfully for subject '{subject}'.")
         else:
             print_error("Marks update failed.")
-    except (ValidationError, MissingRecordError, DuplicateIDError, DatabaseConnectionError) as error:
-        print_error(f"Unable to update marks: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while updating marks: {error}")
+        try:
+            normalized_error = normalize_exception(error, "update marks")
+        except Exception:
+            raise
+        log_exception(normalized_error, "update marks")
+        print_error(f"Unable to update marks: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -539,10 +555,13 @@ def remove_marks() -> None:
             print_success(f"Marks for subject '{subject}' were deleted successfully.")
         else:
             print_error("Marks deletion failed.")
-    except (ValidationError, MissingRecordError, DatabaseConnectionError) as error:
-        print_error(f"Unable to delete marks: {error}")
     except Exception as error:
-        print_error(f"Unexpected error while deleting marks: {error}")
+        try:
+            normalized_error = normalize_exception(error, "delete marks")
+        except Exception:
+            raise
+        log_exception(normalized_error, "delete marks")
+        print_error(f"Unable to delete marks: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -581,9 +600,15 @@ def export_students() -> None:
         path = export_students_to_csv()
         print_success(f"Student export completed: {path}")
     except ExportError as error:
-        print_error(f"Export failed: {error}")
+        log_exception(error, "export students")
+        print_error(f"Export failed: {get_user_message(error)}")
     except Exception as error:
-        print_error(f"Unexpected export error: {error}")
+        try:
+            normalized_error = normalize_exception(error, "export students")
+        except Exception:
+            raise
+        log_exception(normalized_error, "export students")
+        print_error(f"Unexpected export error: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 
@@ -593,9 +618,15 @@ def export_marks() -> None:
         path = export_marks_to_csv()
         print_success(f"Marks export completed: {path}")
     except ExportError as error:
-        print_error(f"Export failed: {error}")
+        log_exception(error, "export marks")
+        print_error(f"Export failed: {get_user_message(error)}")
     except Exception as error:
-        print_error(f"Unexpected export error: {error}")
+        try:
+            normalized_error = normalize_exception(error, "export marks")
+        except Exception:
+            raise
+        log_exception(normalized_error, "export marks")
+        print_error(f"Unexpected export error: {get_user_message(normalized_error)}")
     wait_for_enter()
 
 

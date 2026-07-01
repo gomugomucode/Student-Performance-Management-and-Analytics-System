@@ -5,16 +5,14 @@ from typing import Any
 
 import psycopg
 
+logger = logging.getLogger("student_system")
+
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
     MissingRecordError,
     ValidationError,
 )
-
-logger = logging.getLogger("student_system")
-logger.addHandler(logging.NullHandler())
-
 
 def get_user_message(error: Exception) -> str:
     """Return a friendly, non-sensitive message for end users."""

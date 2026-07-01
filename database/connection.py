@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterator, Optional
 import psycopg
 
 from services.error_handling import log_exception
+from services.logging_config import configure_logging
 from services.validation import DatabaseConnectionError
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,6 +104,7 @@ def get_connection_string() -> str:
 
 def get_connection() -> Optional[Any]:
     """Return a pooled PostgreSQL connection or None if the connection cannot be created."""
+    configure_logging()
     try:
         return _pool.get_connection()
     except Exception as error:

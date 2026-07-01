@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Callable, Optional, Set
+
+logger = logging.getLogger("student_system")
 
 
 class ValidationError(ValueError):
@@ -22,6 +25,11 @@ class DatabaseConnectionError(Exception):
 
 class ExportError(Exception):
     """Raised when a report cannot be written to disk."""
+
+
+def _raise_validation_error(message: str) -> None:
+    logger.warning("Validation failure: %s", message)
+    raise ValidationError(message)
 
 
 GENDER_CHOICES: Set[str] = {
@@ -45,16 +53,16 @@ def _normalize_text(value: Any) -> Optional[str]:
 def validate_student_id(value: Any) -> int:
     """Validate that student_id is a positive integer."""
     if value is None:
-        raise ValidationError("Student ID is required.")
+        _raise_validation_error("Student ID is required.")
 
     if isinstance(value, str):
         value = value.strip()
         if not value.isdigit():
-            raise ValidationError("Student ID must be a positive integer.")
+            _raise_validation_error("Student ID must be a positive integer.")
         value = int(value)
 
     if not isinstance(value, int) or value <= 0:
-        raise ValidationError("Student ID must be a positive integer.")
+        _raise_validation_error("Student ID must be a positive integer.")
 
     return value
 
@@ -63,10 +71,10 @@ def validate_name(name: Any, field_name: str = "Name") -> str:
     """Validate non-empty text for student or subject names."""
     text = _normalize_text(name)
     if text is None:
-        raise ValidationError(f"{field_name} is required and cannot be empty.")
+        _raise_validation_error(f"{field_name} is required and cannot be empty.")
 
     if len(text) > 100:
-        raise ValidationError(f"{field_name} must have at most 100 characters.")
+        _raise_validation_error(f"{field_name} must have at most 100 characters.")
 
     return text
 
@@ -81,7 +89,7 @@ def validate_optional_text(value: Any, field_name: str, max_length: int = 100) -
         return None
 
     if len(text) > max_length:
-        raise ValidationError(f"{field_name} must have at most {max_length} characters.")
+        _raise_validation_error(f"{field_name} must have at most {max_length} characters.")
 
     return text
 
@@ -92,14 +100,14 @@ def validate_age(value: Any, allow_empty: bool = True) -> Optional[int]:
     if text is None:
         if allow_empty:
             return None
-        raise ValidationError("Age is required.")
+        _raise_validation_error("Age is required.")
 
     if not text.isdigit():
-        raise ValidationError("Age must be a positive integer.")
+        _raise_validation_error("Age must be a positive integer.")
 
     age = int(text)
     if age <= 0 or age > 130:
-        raise ValidationError("Age must be between 1 and 130.")
+        _raise_validation_error("Age must be between 1 and 130.")
 
     return age
 
@@ -125,7 +133,7 @@ def validate_gender(value: Any, allow_empty: bool = True) -> Optional[str]:
     if normalized in GENDER_CHOICES:
         return normalized
 
-    raise ValidationError(
+    _raise_validation_error(
         f"Gender must be one of: {', '.join(sorted(GENDER_CHOICES))}."
     )
 
@@ -136,14 +144,14 @@ def validate_semester(value: Any, allow_empty: bool = True) -> Optional[int]:
     if text is None:
         if allow_empty:
             return None
-        raise ValidationError("Semester is required.")
+        _raise_validation_error("Semester is required.")
 
     if not text.isdigit():
-        raise ValidationError("Semester must be a positive integer.")
+        _raise_validation_error("Semester must be a positive integer.")
 
     semester = int(text)
     if semester <= 0 or semester > 12:
-        raise ValidationError("Semester must be between 1 and 12.")
+        _raise_validation_error("Semester must be between 1 and 12.")
 
     return semester
 
@@ -162,14 +170,14 @@ def validate_marks(value: Any) -> int:
     """Validate marks in the inclusive range 0-100."""
     text = _normalize_text(value)
     if text is None:
-        raise ValidationError("Marks are required.")
+        _raise_validation_error("Marks are required.")
 
     if not re.fullmatch(r"\d+", text):
-        raise ValidationError("Marks must be a whole number between 0 and 100.")
+        _raise_validation_error("Marks must be a whole number between 0 and 100.")
 
     value_int = int(text)
     if value_int < 0 or value_int > 100:
-        raise ValidationError("Marks must be between 0 and 100.")
+        _raise_validation_error("Marks must be between 0 and 100.")
 
     return value_int
 

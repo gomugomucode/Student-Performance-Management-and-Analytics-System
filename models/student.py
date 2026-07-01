@@ -1,11 +1,13 @@
 ﻿from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from psycopg.errors import IntegrityError
 
 from database.connection import get_connection, release_connection
 from services.error_handling import log_exception, normalize_exception
+from services.logging_config import configure_logging
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -26,6 +28,7 @@ StudentRecord = Dict[str, Optional[Any]]
 
 def _fetch_students(query: str, params: tuple = ()) -> List[StudentRecord]:
     """Run a query that returns student rows and convert them to dictionaries."""
+    configure_logging()
     conn = get_connection()
     if conn is None:
         raise DatabaseConnectionError("Unable to connect to the database.")
@@ -69,6 +72,8 @@ def add_student(
         raise DatabaseConnectionError("Database connection failed while adding a student.")
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Creating student record for student_id=%s", student_id)
         with conn:
             conn.execute(query, (student_id, name, gender, semester, department, age, grade))
         return True
@@ -93,6 +98,8 @@ def student_id_exists(student_id: int) -> bool:
         raise DatabaseConnectionError("Database connection failed while checking student ID.")
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Checking student existence for student_id=%s", student_id)
         with conn.cursor() as cursor:
             cursor.execute(query, (student_id,))
             return cursor.fetchone() is not None
@@ -181,6 +188,8 @@ def update_student(
         raise DatabaseConnectionError("Database connection failed while updating the student.")
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Updating student record for student_id=%s", student_id)
         with conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, tuple(params))
@@ -205,6 +214,8 @@ def delete_student(student_id: int) -> bool:
         raise DatabaseConnectionError("Database connection failed while deleting the student.")
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Deleting student record for student_id=%s", student_id)
         with conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, (student_id,))

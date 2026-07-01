@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from psycopg.errors import IntegrityError
@@ -7,6 +8,7 @@ from psycopg.errors import IntegrityError
 from database.connection import get_connection, release_connection, transaction
 from models.student import student_id_exists
 from services.error_handling import log_exception, normalize_exception
+from services.logging_config import configure_logging
 from services.validation import (
     DatabaseConnectionError,
     DuplicateIDError,
@@ -22,6 +24,7 @@ MarkRecord = Dict[str, Any]
 
 def _fetch_rows(query: str, params: tuple = ()) -> List[MarkRecord]:
     """Execute a query and return result rows as dictionaries."""
+    configure_logging()
     conn = get_connection()
     if conn is None:
         raise DatabaseConnectionError("Unable to connect to the database.")
@@ -97,6 +100,8 @@ def add_marks_batch(student_id: int, entries: List[Tuple[Any, Any]]) -> bool:
         validated_entries.append((subject_text, marks_value))
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Adding marks batch for student_id=%s", student_id)
         with transaction() as conn:
             for subject_text, marks_value in validated_entries:
                 if _subject_exists_for_connection(conn, student_id, subject_text):
@@ -249,6 +254,8 @@ def delete_marks(mark_id: int) -> bool:
         raise DatabaseConnectionError("Database connection failed while deleting marks.")
 
     try:
+        logger = logging.getLogger("student_system")
+        logger.info("Deleting marks record for mark_id=%s", mark_id)
         with conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, (mark_id,))

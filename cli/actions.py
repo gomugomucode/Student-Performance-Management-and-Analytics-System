@@ -3,6 +3,7 @@ from typing import Optional
 from models.marks import add_marks as add_marks_record
 from models.marks import add_marks_batch as add_marks_batch_record
 from models.marks import delete_marks as delete_marks_record
+from models.marks import delete_marks_for_subject as delete_marks_for_subject_record
 from models.marks import get_marks as fetch_marks
 from models.marks import update_marks as update_marks_record
 from models.marks import update_marks_for_subject as update_marks_for_subject_record
@@ -513,31 +514,24 @@ def remove_marks() -> None:
         wait_for_enter()
         return
 
-    print_success(f"Found {len(marks)} record(s) for student {student['name']}.")
-    headers = ["Record ID", "Subject", "Marks"]
-    rows = [
-        [
-            str(mark.get("mark_id", "")),
-            mark.get("subject", ""),
-            str(mark.get("marks", "")),
-        ]
-        for mark in marks
-    ]
+    print_success(f"Found {len(marks)} subject mark(s) for {student['name']}.")
+    headers = ["Subject", "Marks"]
+    rows = [[mark.get("subject", ""), str(mark.get("marks", ""))] for mark in marks]
     print_table(headers, rows)
 
-    mark_id = read_positive_int("Select marks record ID to delete: ")
-    if not confirm_action("Are you sure you want to delete this marks record? (Y/N): "):
+    subject = read_non_empty_text("Enter the subject to delete: ")
+    if not confirm_action("Are you sure you want to delete this subject entry? (Y/N): "):
         print_info("Delete operation canceled.")
         wait_for_enter()
         return
 
     try:
-        deleted = delete_marks_record(mark_id)
+        deleted = delete_marks_for_subject_record(student_id, subject)
         if deleted:
-            print_success("Marks deleted successfully.")
+            print_success(f"Marks for subject '{subject}' were deleted successfully.")
         else:
             print_error("Marks deletion failed.")
-    except (MissingRecordError, DatabaseConnectionError) as error:
+    except (ValidationError, MissingRecordError, DatabaseConnectionError) as error:
         print_error(f"Unable to delete marks: {error}")
     except Exception as error:
         print_error(f"Unexpected error while deleting marks: {error}")

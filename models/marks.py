@@ -251,3 +251,35 @@ def delete_marks(mark_id: int) -> bool:
         return True
     finally:
         release_connection(conn)
+
+
+def delete_marks_for_subject(student_id: int, subject: str) -> bool:
+    """Delete a single subject entry for a student using a PostgreSQL transaction."""
+    student_id = validate_student_id(student_id)
+
+    if subject is None:
+        raise ValidationError("Subject is required.")
+
+    subject_text = validate_subject_name(subject)
+
+    if not student_id_exists(student_id):
+        raise MissingRecordError(f"Student with ID {student_id} does not exist.")
+
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT mark_id FROM marks WHERE student_id = %s AND LOWER(subject) = LOWER(%s) LIMIT 1;",
+                    (student_id, subject_text),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise MissingRecordError(f"No marks found for subject '{subject_text}'.")
+
+                mark_id = row[0]
+                cursor.execute("DELETE FROM marks WHERE mark_id = %s;", (mark_id,))
+                if cursor.rowcount == 0:
+                    raise MissingRecordError(f"No marks found for subject '{subject_text}'.")
+        return True
+    except IntegrityError as error:
+        raise DatabaseConnectionError(f"Unable to delete marks for subject '{subject_text}': {error}") from error

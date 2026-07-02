@@ -26,27 +26,33 @@ A terminal-based Python application for managing student records, entering marks
 
 ```text
 .
-├── cli
-│   ├── actions.py
-│   ├── menu.py
-│   └── utils.py
-├── database
-│   ├── connection.py
-│   └── schema.py
-├── models
-│   ├── marks.py
-│   └── student.py
-├── reports
-├── services
-│   ├── analytics.py
-│   ├── export.py
-│   └── validation.py
-├── tests
-│   ├── test_marks.py
-│   └── test_student.py
-├── main.py
-├── README.md
-└── requirements.txt
+├── cli/                          # Terminal UI and user interactions
+│   ├── actions.py               # Core CLI action handlers (CRUD operations)
+│   ├── menu.py                  # Menu display and navigation logic
+│   └── utils.py                 # CLI utility functions and helpers
+├── database/                     # Database configuration and schema management
+│   ├── connection.py            # PostgreSQL connection setup and pooling
+│   └── schema.py                # Database schema initialization
+├── models/                       # Data models and entity definitions
+│   ├── marks.py                 # Marks model with business logic
+│   └── student.py               # Student model with CRUD operations
+├── reports/                      # Generated reports and exports
+│   └── *.csv                    # CSV exports for students and marks
+├── services/                     # Business logic and cross-cutting concerns
+│   ├── analytics.py             # Analytics calculations and reporting
+│   ├── error_handling.py        # Exception handling and error processing
+│   ├── export.py                # CSV export functionality
+│   ├── formatting.py            # Output formatting and table display
+│   ├── logging_config.py        # Logging configuration
+│   └── validation.py            # Input validation and data constraints
+├── tests/                        # Unit and integration tests
+│   ├── test_*.py                # Individual test modules
+│   └── [various test files]     # Comprehensive test coverage
+├── config.py                     # Configuration and environment settings
+├── main.py                       # Application entry point
+├── requirements.txt              # Python dependencies
+├── schema.sql                    # SQL schema definitions
+└── README.md                     # Project documentation
 ```
 
 ## Installation
